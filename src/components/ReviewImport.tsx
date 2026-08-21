@@ -114,7 +114,8 @@ export function ReviewImport({
       </div>
 
       <Card padded={false} className="overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Tabla: pantallas medianas en adelante */}
+        <div className="hidden overflow-x-auto sm:block">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b text-left" style={{ borderColor: "var(--border)" }}>
@@ -218,6 +219,93 @@ export function ReviewImport({
             </tbody>
           </table>
         </div>
+
+        {/* Tarjetas: mobile — la tabla no entra en pantallas chicas */}
+        <ul className="sm:hidden">
+          {rows.map((row) => {
+            const meta = CONFIDENCE_META[row.confidence];
+            const Icon = meta.icon;
+            return (
+              <li
+                key={row.key}
+                className="space-y-2 border-b p-3 last:border-0"
+                style={{ borderColor: "var(--border)", opacity: row.include ? 1 : 0.4 }}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={row.include}
+                      onChange={(e) => patchRow(row.key, { include: e.target.checked })}
+                    />
+                    <input
+                      type="date"
+                      value={row.date}
+                      onChange={(e) => patchRow(row.key, { date: e.target.value })}
+                      className="rounded-lg border bg-transparent px-2 py-1 text-sm"
+                      style={{ borderColor: "var(--border)" }}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span title={meta.label}>
+                      <Icon size={16} style={{ color: meta.color }} />
+                    </span>
+                    <button
+                      onClick={() => patchRow(row.key, { include: false })}
+                      className="cursor-pointer"
+                      style={{ color: "var(--text-muted)" }}
+                      title="Descartar esta fila"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                </div>
+
+                <input
+                  type="text"
+                  value={row.description}
+                  onChange={(e) => patchRow(row.key, { description: e.target.value })}
+                  className="w-full rounded-lg border bg-transparent px-2 py-1.5 text-sm"
+                  style={{ borderColor: "var(--border)" }}
+                />
+
+                <div className="flex items-center gap-2">
+                  <select
+                    value={row.category}
+                    onChange={(e) => patchRow(row.key, { category: e.target.value as Category })}
+                    className="min-w-0 flex-1 rounded-lg border bg-transparent px-2 py-1.5 text-sm"
+                    style={{ borderColor: "var(--border)" }}
+                  >
+                    {CATEGORY_ORDER.map((c) => (
+                      <option key={c} value={c}>
+                        {CATEGORY_META[c].label}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    title="Invertir signo (gasto/ingreso)"
+                    onClick={() => patchRow(row.key, { amount: -row.amount })}
+                    className="shrink-0 cursor-pointer rounded p-1"
+                    style={{ color: "var(--text-muted)" }}
+                  >
+                    <ArrowLeftRight size={14} />
+                  </button>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={row.amount}
+                    onChange={(e) => patchRow(row.key, { amount: Number(e.target.value) })}
+                    className="w-24 shrink-0 rounded-lg border bg-transparent px-2 py-1.5 text-right text-sm tabular-nums"
+                    style={{
+                      borderColor: "var(--border)",
+                      color: row.amount < 0 ? "var(--status-critical)" : "var(--status-good)",
+                    }}
+                  />
+                </div>
+              </li>
+            );
+          })}
+        </ul>
       </Card>
 
       <div className="flex justify-end gap-2">

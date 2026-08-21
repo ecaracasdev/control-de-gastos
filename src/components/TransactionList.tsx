@@ -163,30 +163,49 @@ export function TransactionList() {
               const isOpen = expanded === t.id;
               return (
                 <li key={t.id} className="border-b last:border-0" style={{ borderColor: "var(--border)" }}>
-                  <div className="flex items-center gap-3 px-4 py-3">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-3 sm:flex-nowrap">
                     <button
                       onClick={() => setExpanded(isOpen ? null : isMpTopUp ? t.id : null)}
-                      className="shrink-0 cursor-pointer"
+                      className="order-1 shrink-0 cursor-pointer"
                       style={{ color: isMpTopUp ? "var(--text-secondary)" : "transparent" }}
                       disabled={!isMpTopUp}
                     >
                       {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                     </button>
 
-                    <div className="w-24 shrink-0 text-xs tabular-nums" style={{ color: "var(--text-muted)" }}>
+                    <div
+                      className="order-2 shrink-0 text-xs tabular-nums sm:w-24"
+                      style={{ color: "var(--text-muted)" }}
+                    >
                       {formatDate(t.date)}
                     </div>
 
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-                        {t.description}
+                    <div
+                      className="order-3 ml-auto shrink-0 text-right text-sm font-medium tabular-nums sm:order-4 sm:ml-0 sm:w-28"
+                      style={{ color: t.amount < 0 ? "var(--status-critical)" : "var(--status-good)" }}
+                    >
+                      {formatCurrency(t.amount, t.currency)}
+                    </div>
+
+                    <button
+                      onClick={() => deleteTransaction(t.id)}
+                      className="order-4 shrink-0 cursor-pointer sm:order-5"
+                      style={{ color: "var(--text-muted)" }}
+                      title="Eliminar movimiento"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+
+                    <div className="order-5 min-w-0 basis-full sm:order-3 sm:basis-auto sm:flex-1">
+                      <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+                        <span className="sm:truncate">{t.description}</span>
                         {t.installment && (
                           <span className="ml-1.5 text-xs font-normal" style={{ color: "var(--text-muted)" }}>
                             cuota {t.installment.current}/{t.installment.total}
                           </span>
                         )}
                       </p>
-                      <div className="mt-1 flex items-center gap-2">
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
                         {t.amount >= 0 ? (
                           <Badge color="var(--status-good)">Ingreso</Badge>
                         ) : (
@@ -201,22 +220,6 @@ export function TransactionList() {
                         )}
                       </div>
                     </div>
-
-                    <div
-                      className="w-28 shrink-0 text-right text-sm font-medium tabular-nums"
-                      style={{ color: t.amount < 0 ? "var(--status-critical)" : "var(--status-good)" }}
-                    >
-                      {formatCurrency(t.amount, t.currency)}
-                    </div>
-
-                    <button
-                      onClick={() => deleteTransaction(t.id)}
-                      className="shrink-0 cursor-pointer"
-                      style={{ color: "var(--text-muted)" }}
-                      title="Eliminar movimiento"
-                    >
-                      <Trash2 size={15} />
-                    </button>
                   </div>
 
                   {isOpen && isMpTopUp && <MercadoPagoDetail transaction={t} />}

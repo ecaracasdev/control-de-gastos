@@ -16,18 +16,21 @@ export function TopNav({ active, onChange }: { active: Tab; onChange: (tab: Tab)
       className="sticky top-0 z-20 border-b backdrop-blur"
       style={{ borderColor: "var(--border)", background: "color-mix(in srgb, var(--surface-1) 88%, transparent)" }}
     >
-      <div className="mx-auto flex max-w-6xl items-center gap-6 px-4 sm:px-6">
-        <div className="flex items-center gap-2 py-4 font-semibold" style={{ color: "var(--text-primary)" }}>
+      <div className="mx-auto flex max-w-6xl items-center gap-2 px-3 sm:gap-6 sm:px-6">
+        <div
+          className="flex shrink-0 items-center gap-2 whitespace-nowrap py-4 font-semibold"
+          style={{ color: "var(--text-primary)" }}
+        >
           <Wallet size={20} style={{ color: "var(--accent)" }} />
-          Mis Finanzas
+          <span className="hidden sm:inline">Mis Finanzas</span>
         </div>
-        <nav className="flex gap-1 overflow-x-auto">
+        <nav className="flex min-w-0 gap-1 overflow-x-auto">
           {TABS.map(({ key, label, icon: Icon }) => (
             <button
               key={key}
               onClick={() => onChange(key)}
               className={clsx(
-                "flex items-center gap-2 whitespace-nowrap rounded-t-lg px-3.5 py-4 text-sm font-medium border-b-2 transition-colors cursor-pointer",
+                "flex items-center gap-1.5 whitespace-nowrap rounded-t-lg px-2.5 py-4 text-sm font-medium border-b-2 transition-colors cursor-pointer sm:gap-2 sm:px-3.5",
               )}
               style={{
                 borderColor: active === key ? "var(--accent)" : "transparent",
