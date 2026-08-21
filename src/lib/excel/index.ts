@@ -1,5 +1,5 @@
 import type { Bank, ParsedTransactionDraft } from "../../types";
-import { categorize, detectInstallment, isMercadoPagoTransfer } from "../categorize";
+import { categorize, detectInstallment } from "../categorize";
 import { normalizeCellDate, readXlsxRows, type XlsxRow } from "./parseXlsx";
 
 const NON_AMOUNT_HEADERS = [
@@ -100,7 +100,6 @@ export async function parseStatementXlsx(file: File, bank: Bank): Promise<ExcelP
     if (!hasAmount) continue;
 
     const category = categorize(description);
-    const mpTransfer = category === "transferencias" && amount < 0 && isMercadoPagoTransfer(description);
     const saldoRaw = saldoCol ? row.cells[saldoCol] : undefined;
     const balanceAfter = saldoRaw !== undefined ? Number(saldoRaw) : undefined;
 
@@ -112,7 +111,6 @@ export async function parseStatementXlsx(file: File, bank: Bank): Promise<ExcelP
       category,
       bank,
       installment: detectInstallment(description),
-      isMercadoPagoTransfer: mpTransfer,
       sourceFile: file.name,
       reference: refCol ? row.cells[refCol] : undefined,
       balanceAfter: balanceAfter !== undefined && !Number.isNaN(balanceAfter) ? balanceAfter : undefined,

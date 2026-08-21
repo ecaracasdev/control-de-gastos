@@ -8,15 +8,15 @@ export function RealBalanceCard({ snapshot }: { snapshot: BankBalanceSnapshot })
     <Card
       className="flex flex-wrap items-center gap-3"
       style={{
-        borderColor: "var(--series-transferencias)",
-        background: "color-mix(in srgb, var(--series-transferencias) 6%, var(--surface-1))",
+        borderColor: "var(--status-good)",
+        background: "color-mix(in srgb, var(--status-good) 6%, var(--surface-1))",
       }}
     >
       <div
         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-        style={{ background: "color-mix(in srgb, var(--series-transferencias) 18%, transparent)" }}
+        style={{ background: "color-mix(in srgb, var(--status-good) 18%, transparent)" }}
       >
-        <Landmark size={18} style={{ color: "var(--series-transferencias)" }} />
+        <Landmark size={18} style={{ color: "var(--status-good)" }} />
       </div>
       <div>
         <p className="text-xs" style={{ color: "var(--text-muted)" }}>

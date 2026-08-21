@@ -4,7 +4,7 @@ import clsx from "clsx";
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 
 const VARIANT_CLASS: Record<Variant, string> = {
-  primary: "bg-[var(--series-suscripciones)] text-white hover:opacity-90",
+  primary: "bg-[var(--accent)] text-white hover:opacity-90",
   secondary:
     "bg-transparent border hover:bg-black/[.03] dark:hover:bg-white/[.06]",
   ghost: "bg-transparent hover:bg-black/[.03] dark:hover:bg-white/[.06]",

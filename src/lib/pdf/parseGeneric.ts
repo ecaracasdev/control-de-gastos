@@ -1,5 +1,5 @@
 import type { Bank, ParsedTransactionDraft } from "../../types";
-import { categorize, detectInstallment, isMercadoPagoTransfer } from "../categorize";
+import { categorize, detectInstallment } from "../categorize";
 import type { PdfLine } from "./extractText";
 import { extractLeadingDate, findAmounts, parseArgentineAmount, stripAmounts } from "./parseUtils";
 
@@ -54,7 +54,6 @@ export function parseGeneric(
       const currency: "ARS" | "USD" = /u\$s|us\$|usd/i.test(description) ? "USD" : "ARS";
       const installment = detectInstallment(description);
       const category = categorize(description);
-      const mpTransfer = category === "transferencias" && amount < 0 && isMercadoPagoTransfer(description);
 
       drafts.push({
         date: current.iso,
@@ -64,7 +63,6 @@ export function parseGeneric(
         category,
         bank,
         installment,
-        isMercadoPagoTransfer: mpTransfer,
         sourceFile,
         confidence: amounts.length === 1 ? "alta" : "media",
       });

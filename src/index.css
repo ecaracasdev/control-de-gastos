@@ -12,12 +12,14 @@
   --border: #e1e0d9;
   --border-strong: rgba(11, 11, 11, 0.1);
 
-  --series-suscripciones: #2a78d6;
-  --series-tarjetas: #eb6834;
-  --series-transferencias: #1baf7a;
-  --series-automaticos: #eda100;
-  --series-otros: #e87ba4;
-  --series-ingresos: #008300;
+  --accent: #2a78d6;
+
+  --series-compras-tarjeta: #2a78d6;
+  --series-pago-tarjeta-credito: #eb6834;
+  --series-mercado-pago: #1baf7a;
+  --series-transferencias: #eda100;
+  --series-debitos-automaticos: #e87ba4;
+  --series-otros: #008300;
 
   --status-good: #0ca30c;
   --status-warning: #fab219;
@@ -35,12 +37,14 @@
     --border: #2c2c2a;
     --border-strong: rgba(255, 255, 255, 0.1);
 
-    --series-suscripciones: #3987e5;
-    --series-tarjetas: #d95926;
-    --series-transferencias: #199e70;
-    --series-automaticos: #c98500;
-    --series-otros: #d55181;
-    --series-ingresos: #0ca30c;
+    --accent: #3987e5;
+
+    --series-compras-tarjeta: #3987e5;
+    --series-pago-tarjeta-credito: #d95926;
+    --series-mercado-pago: #199e70;
+    --series-transferencias: #c98500;
+    --series-debitos-automaticos: #d55181;
+    --series-otros: #0ca30c;
   }
 }
 
@@ -63,7 +67,7 @@ body {
 }
 
 ::selection {
-  background: color-mix(in srgb, var(--series-suscripciones) 30%, transparent);
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .tabular-nums {

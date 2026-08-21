@@ -100,10 +100,10 @@ export function UploadPanel({
               onClick={() => setBank(b.key)}
               className="flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer"
               style={{
-                borderColor: bank === b.key ? "var(--series-suscripciones)" : "var(--border)",
-                color: bank === b.key ? "var(--series-suscripciones)" : "var(--text-secondary)",
+                borderColor: bank === b.key ? "var(--accent)" : "var(--border)",
+                color: bank === b.key ? "var(--accent)" : "var(--text-secondary)",
                 background:
-                  bank === b.key ? "color-mix(in srgb, var(--series-suscripciones) 10%, transparent)" : "transparent",
+                  bank === b.key ? "color-mix(in srgb, var(--accent) 10%, transparent)" : "transparent",
               }}
             >
               <Landmark size={14} />
@@ -132,10 +132,10 @@ export function UploadPanel({
             if (file) handleFile(file);
           }}
           className="flex w-full flex-col items-center gap-3 px-6 py-4"
-          style={{ outline: dragging ? "2px solid var(--series-suscripciones)" : "none", borderRadius: 12 }}
+          style={{ outline: dragging ? "2px solid var(--accent)" : "none", borderRadius: 12 }}
         >
           {loading ? (
-            <Loader2 className="animate-spin" size={32} style={{ color: "var(--series-suscripciones)" }} />
+            <Loader2 className="animate-spin" size={32} style={{ color: "var(--accent)" }} />
           ) : (
             <UploadCloud size={32} style={{ color: "var(--text-muted)" }} />
           )}

@@ -18,7 +18,7 @@ export function TopNav({ active, onChange }: { active: Tab; onChange: (tab: Tab)
     >
       <div className="mx-auto flex max-w-6xl items-center gap-6 px-4 sm:px-6">
         <div className="flex items-center gap-2 py-4 font-semibold" style={{ color: "var(--text-primary)" }}>
-          <Wallet size={20} style={{ color: "var(--series-suscripciones)" }} />
+          <Wallet size={20} style={{ color: "var(--accent)" }} />
           Mis Finanzas
         </div>
         <nav className="flex gap-1 overflow-x-auto">
@@ -30,7 +30,7 @@ export function TopNav({ active, onChange }: { active: Tab; onChange: (tab: Tab)
                 "flex items-center gap-2 whitespace-nowrap rounded-t-lg px-3.5 py-4 text-sm font-medium border-b-2 transition-colors cursor-pointer",
               )}
               style={{
-                borderColor: active === key ? "var(--series-suscripciones)" : "transparent",
+                borderColor: active === key ? "var(--accent)" : "transparent",
                 color: active === key ? "var(--text-primary)" : "var(--text-secondary)",
               }}
             >

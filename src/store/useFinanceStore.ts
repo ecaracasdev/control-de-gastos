@@ -155,7 +155,10 @@ export const useFinanceStore = create<FinanceState>()(
       clearAll: () =>
         set({ transactions: [], incomeEntries: [], openingBalance: null, bankBalanceSnapshot: null }),
     }),
-    { name: "control-de-gastos" },
+    // v2: se rediseñaron las categorías (se separó Mercado Pago, pago de
+    // tarjeta de crédito y se sacó "suscripciones"), así que los datos
+    // viejos con el esquema anterior no son compatibles y se abandonan.
+    { name: "control-de-gastos-v2" },
   ),
 );
 
@@ -185,10 +188,11 @@ export function sourceFileSummaries(transactions: Transaction[]): SourceFileSumm
 
 export function totalsByCategory(transactions: Transaction[]): Record<Category, number> {
   const totals: Record<Category, number> = {
-    suscripciones: 0,
-    consumos_automaticos: 0,
+    compras_tarjeta: 0,
+    pago_tarjeta_credito: 0,
+    mercado_pago: 0,
     transferencias: 0,
-    consumo_tarjetas: 0,
+    debitos_automaticos: 0,
     otros: 0,
   };
   for (const t of transactions) {

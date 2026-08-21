@@ -45,7 +45,7 @@ export function SummaryCards({
       label: "Tasa de ahorro",
       value: savingsRate === null ? "Cargá tus ingresos" : formatPercent(savingsRate),
       icon: PiggyBank,
-      color: "var(--series-suscripciones)",
+      color: "var(--accent)",
     },
   ];
 

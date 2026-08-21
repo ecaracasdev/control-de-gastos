@@ -1,8 +1,9 @@
 export type Category =
-  | "suscripciones"
-  | "consumos_automaticos"
+  | "compras_tarjeta"
+  | "pago_tarjeta_credito"
+  | "mercado_pago"
   | "transferencias"
-  | "consumo_tarjetas"
+  | "debitos_automaticos"
   | "otros";
 
 export type Bank = "santander" | "nacion" | "manual";
@@ -26,7 +27,6 @@ export interface Transaction {
   category: Category;
   bank: Bank;
   installment?: { current: number; total: number };
-  isMercadoPagoTransfer?: boolean;
   mpDetails?: MercadoPagoDetailItem[];
   sourceFile?: string;
   /** Número de referencia/comprobante del banco, cuando está disponible (distingue movimientos idénticos en fecha/monto/descripción) */
@@ -45,48 +45,56 @@ export interface CategoryMeta {
 }
 
 export const CATEGORY_META: Record<Category, CategoryMeta> = {
-  suscripciones: {
-    key: "suscripciones",
-    label: "Suscripciones",
-    shortLabel: "Suscripciones",
-    description: "Streaming, software y otros servicios pagos recurrentes",
-    colorVar: "var(--series-suscripciones)",
+  compras_tarjeta: {
+    key: "compras_tarjeta",
+    label: "Compras con tarjeta",
+    shortLabel: "Compras",
+    description: "Consumos del día a día con tarjeta de débito o crédito en comercios",
+    colorVar: "var(--series-compras-tarjeta)",
   },
-  consumos_automaticos: {
-    key: "consumos_automaticos",
-    label: "Consumos automáticos",
-    shortLabel: "Automáticos",
-    description: "Débitos automáticos: servicios, expensas, telefonía",
-    colorVar: "var(--series-automaticos)",
+  pago_tarjeta_credito: {
+    key: "pago_tarjeta_credito",
+    label: "Pago de tarjeta de crédito",
+    shortLabel: "Pago tarjeta",
+    description: "El pago del resumen de tu tarjeta de crédito (ya gastado en ciclos anteriores)",
+    colorVar: "var(--series-pago-tarjeta-credito)",
+  },
+  mercado_pago: {
+    key: "mercado_pago",
+    label: "Mercado Pago",
+    shortLabel: "Mercado Pago",
+    description: "Plata que enviaste a tu propia cuenta de Mercado Pago",
+    colorVar: "var(--series-mercado-pago)",
   },
   transferencias: {
     key: "transferencias",
     label: "Transferencias",
     shortLabel: "Transferencias",
-    description: "Transferencias enviadas, incluyendo cargas a Mercado Pago",
+    description: "Transferencias enviadas o recibidas de otras personas o cuentas",
     colorVar: "var(--series-transferencias)",
   },
-  consumo_tarjetas: {
-    key: "consumo_tarjetas",
-    label: "Consumo de tarjetas",
-    shortLabel: "Tarjetas",
-    description: "Compras con tarjeta de débito o crédito, incluidas cuotas",
-    colorVar: "var(--series-tarjetas)",
+  debitos_automaticos: {
+    key: "debitos_automaticos",
+    label: "Débitos automáticos",
+    shortLabel: "Automáticos",
+    description: "Servicios, expensas, seguros y suscripciones que se cobran solos",
+    colorVar: "var(--series-debitos-automaticos)",
   },
   otros: {
     key: "otros",
     label: "Otros",
     shortLabel: "Otros",
-    description: "Movimientos que no encajan en el resto de las categorías",
+    description: "Impuestos, intereses, extracciones y movimientos que no encajan en el resto",
     colorVar: "var(--series-otros)",
   },
 };
 
 export const CATEGORY_ORDER: Category[] = [
-  "suscripciones",
-  "consumos_automaticos",
+  "compras_tarjeta",
+  "pago_tarjeta_credito",
+  "mercado_pago",
   "transferencias",
-  "consumo_tarjetas",
+  "debitos_automaticos",
   "otros",
 ];
 

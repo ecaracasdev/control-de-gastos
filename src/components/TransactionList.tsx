@@ -132,15 +132,16 @@ export function TransactionList() {
           <ul>
             {filtered.map((t) => {
               const meta = CATEGORY_META[t.category];
+              const isMpTopUp = t.category === "mercado_pago" && t.amount < 0;
               const isOpen = expanded === t.id;
               return (
                 <li key={t.id} className="border-b last:border-0" style={{ borderColor: "var(--border)" }}>
                   <div className="flex items-center gap-3 px-4 py-3">
                     <button
-                      onClick={() => setExpanded(isOpen ? null : t.isMercadoPagoTransfer ? t.id : null)}
+                      onClick={() => setExpanded(isOpen ? null : isMpTopUp ? t.id : null)}
                       className="shrink-0 cursor-pointer"
-                      style={{ color: t.isMercadoPagoTransfer ? "var(--text-secondary)" : "transparent" }}
-                      disabled={!t.isMercadoPagoTransfer}
+                      style={{ color: isMpTopUp ? "var(--text-secondary)" : "transparent" }}
+                      disabled={!isMpTopUp}
                     >
                       {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                     </button>
@@ -164,7 +165,7 @@ export function TransactionList() {
                         ) : (
                           <Badge color={meta.colorVar}>{meta.shortLabel}</Badge>
                         )}
-                        {t.isMercadoPagoTransfer && (
+                        {isMpTopUp && (
                           <span className="text-xs" style={{ color: "var(--text-muted)" }}>
                             {(t.mpDetails?.length ?? 0) > 0
                               ? `${t.mpDetails!.length} gasto(s) detallado(s)`
@@ -191,7 +192,7 @@ export function TransactionList() {
                     </button>
                   </div>
 
-                  {isOpen && t.isMercadoPagoTransfer && <MercadoPagoDetail transaction={t} />}
+                  {isOpen && isMpTopUp && <MercadoPagoDetail transaction={t} />}
                 </li>
               );
             })}

@@ -76,7 +76,7 @@ export function MercadoPagoDetail({ transaction }: { transaction: Transaction })
         <button
           onClick={submit}
           className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-sm font-medium cursor-pointer"
-          style={{ background: "var(--series-suscripciones)", color: "white" }}
+          style={{ background: "var(--accent)", color: "white" }}
         >
           <Plus size={14} /> Agregar
         </button>
