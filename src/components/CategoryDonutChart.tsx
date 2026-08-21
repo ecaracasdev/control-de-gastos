@@ -7,12 +7,17 @@ import { PieChart as PieIcon } from "lucide-react";
 
 export function CategoryDonutChart({ totals }: { totals: Record<Category, number> }) {
   const total = CATEGORY_ORDER.reduce((sum, c) => sum + totals[c], 0);
-  const data = CATEGORY_ORDER.filter((c) => totals[c] > 0).map((c) => ({
-    key: c,
-    name: CATEGORY_META[c].label,
-    value: totals[c],
-    color: CATEGORY_META[c].colorVar,
-  }));
+  // Ordenado una sola vez y reusado tal cual por el gráfico y la leyenda —
+  // antes cada uno ordenaba (o no) por su cuenta y con .sort() mutando el
+  // mismo array terminaban mostrando colores distintos para la misma porción.
+  const data = CATEGORY_ORDER.filter((c) => totals[c] > 0)
+    .map((c) => ({
+      key: c,
+      name: CATEGORY_META[c].label,
+      value: totals[c],
+      color: CATEGORY_META[c].colorVar,
+    }))
+    .sort((a, b) => b.value - a.value);
 
   if (total === 0) {
     return (
@@ -72,28 +77,20 @@ export function CategoryDonutChart({ totals }: { totals: Record<Category, number
         </div>
 
         <ul className="space-y-2.5">
-          {data
-            .sort((a, b) => b.value - a.value)
-            .map((entry) => (
-              <li key={entry.key} className="flex items-center justify-between gap-3 text-sm">
-                <span className="flex items-center gap-2 min-w-0" style={{ color: "var(--text-primary)" }}>
-                  <span
-                    className="h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{ background: entry.color }}
-                  />
-                  <span className="truncate">{entry.name}</span>
+          {data.map((entry) => (
+            <li key={entry.key} className="flex items-center justify-between gap-3 text-sm">
+              <span className="flex items-center gap-2 min-w-0" style={{ color: "var(--text-primary)" }}>
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: entry.color }} />
+                <span className="truncate">{entry.name}</span>
+              </span>
+              <span className="flex shrink-0 items-center gap-2 tabular-nums">
+                <span style={{ color: "var(--text-secondary)" }}>{formatCurrency(entry.value)}</span>
+                <span className="w-12 text-right text-xs" style={{ color: "var(--text-muted)" }}>
+                  {formatPercent(entry.value / total)}
                 </span>
-                <span className="flex shrink-0 items-center gap-2 tabular-nums">
-                  <span style={{ color: "var(--text-secondary)" }}>{formatCurrency(entry.value)}</span>
-                  <span
-                    className="w-12 text-right text-xs"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    {formatPercent(entry.value / total)}
-                  </span>
-                </span>
-              </li>
-            ))}
+              </span>
+            </li>
+          ))}
         </ul>
       </div>
     </Card>

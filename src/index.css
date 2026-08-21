@@ -19,7 +19,7 @@
   --series-mercado-pago: #1baf7a;
   --series-transferencias: #eda100;
   --series-debitos-automaticos: #e87ba4;
-  --series-otros: #008300;
+  --series-otros: #4a3aa7;
 
   --status-good: #0ca30c;
   --status-warning: #fab219;
@@ -44,7 +44,7 @@
     --series-mercado-pago: #199e70;
     --series-transferencias: #c98500;
     --series-debitos-automaticos: #d55181;
-    --series-otros: #0ca30c;
+    --series-otros: #9085e9;
   }
 }
 
