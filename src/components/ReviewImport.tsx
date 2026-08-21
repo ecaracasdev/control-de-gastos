@@ -38,12 +38,24 @@ export function ReviewImport({
   const [result, setResult] = useState<{ added: number; duplicates: number } | null>(null);
 
   const included = useMemo(() => rows.filter((r) => r.include), [rows]);
+  // Igual que en el Panel: una transferencia recibida (ej. te devolvieron
+  // plata que vos mandaste) no es "ingreso nuevo", así que no se mezcla acá.
   const totalGasto = useMemo(
-    () => included.filter((r) => r.amount < 0).reduce((sum, r) => sum + Math.abs(r.amount), 0),
+    () =>
+      included
+        .filter((r) => r.amount < 0 && r.category !== "transferencias")
+        .reduce((sum, r) => sum + Math.abs(r.amount), 0),
     [included],
   );
   const totalIngreso = useMemo(
-    () => included.filter((r) => r.amount > 0).reduce((sum, r) => sum + r.amount, 0),
+    () =>
+      included
+        .filter((r) => r.amount > 0 && r.category !== "transferencias")
+        .reduce((sum, r) => sum + r.amount, 0),
+    [included],
+  );
+  const transfersNet = useMemo(
+    () => included.filter((r) => r.category === "transferencias").reduce((sum, r) => sum + r.amount, 0),
     [included],
   );
 
@@ -79,7 +91,7 @@ export function ReviewImport({
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-4">
+    <div className="mx-auto max-w-5xl space-y-4 pb-24">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
@@ -87,7 +99,7 @@ export function ReviewImport({
           </h1>
           <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
             Detectamos {rows.length} movimientos en <span className="font-medium">{fileName}</span>. Corregí lo
-            que haga falta: fecha, descripción, monto o categoría.
+            que haga falta y confirmá abajo para guardarlos.
           </p>
         </div>
       </div>
@@ -109,6 +121,15 @@ export function ReviewImport({
           <p className="text-xs" style={{ color: "var(--text-muted)" }}>Ingresos/acreditaciones</p>
           <p className="text-lg font-semibold tabular-nums" style={{ color: "var(--status-good)" }}>
             {formatCurrency(totalIngreso)}
+          </p>
+        </Card>
+        <Card className="flex-1 min-w-[160px] !p-3">
+          <p className="text-xs" style={{ color: "var(--text-muted)" }}>Transferencias (neto)</p>
+          <p
+            className="text-lg font-semibold tabular-nums"
+            style={{ color: transfersNet >= 0 ? "var(--status-good)" : "var(--status-critical)" }}
+          >
+            {formatCurrency(transfersNet)}
           </p>
         </Card>
       </div>
@@ -308,13 +329,23 @@ export function ReviewImport({
         </ul>
       </Card>
 
-      <div className="flex justify-end gap-2">
-        <Button variant="secondary" onClick={onCancel}>
-          Cancelar
-        </Button>
-        <Button onClick={confirm} disabled={included.length === 0}>
-          Guardar {included.length} movimientos
-        </Button>
+      <div
+        className="fixed inset-x-0 bottom-0 z-30 border-t px-4 py-3 shadow-lg backdrop-blur"
+        style={{ borderColor: "var(--border)", background: "color-mix(in srgb, var(--surface-1) 92%, transparent)" }}
+      >
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 sm:justify-end">
+          <p className="text-xs sm:hidden" style={{ color: "var(--text-muted)" }}>
+            {included.length} de {rows.length} seleccionados
+          </p>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={onCancel}>
+              Cancelar
+            </Button>
+            <Button onClick={confirm} disabled={included.length === 0}>
+              Guardar {included.length} movimientos
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );

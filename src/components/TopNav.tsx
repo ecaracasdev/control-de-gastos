@@ -6,7 +6,7 @@ export type Tab = "dashboard" | "transactions" | "upload" | "income";
 const TABS: { key: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { key: "dashboard", label: "Panel", icon: LayoutDashboard },
   { key: "transactions", label: "Movimientos", icon: List },
-  { key: "upload", label: "Cargar PDF", icon: UploadCloud },
+  { key: "upload", label: "Cargar documento", icon: UploadCloud },
   { key: "income", label: "Ingresos", icon: Wallet },
 ];
 
