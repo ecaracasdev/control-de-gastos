@@ -37,21 +37,40 @@ export function Dashboard({ onGoToUpload }: { onGoToUpload: () => void }) {
     return entries.reduce((sum, e) => sum + e.amount, 0);
   }, [incomeEntries, selectedMonth]);
 
+  // Las transferencias (a otras personas, no a Mercado Pago) se tratan aparte:
+  // si mandás $900.000 y te los devuelven, sumar esa devolución como "ingreso"
+  // sin contar el envío como "gasto" infla ambos números con plata que en
+  // realidad ya era tuya. Se muestran como un neto propio en vez de mezclarlas.
   const detectedIncome = useMemo(
-    () => filtered.filter((t) => t.amount > 0).reduce((sum, t) => sum + t.amount, 0),
+    () =>
+      filtered
+        .filter((t) => t.amount > 0 && t.category !== "transferencias")
+        .reduce((sum, t) => sum + t.amount, 0),
+    [filtered],
+  );
+
+  const transfersNet = useMemo(
+    () => filtered.filter((t) => t.category === "transferencias").reduce((sum, t) => sum + t.amount, 0),
     [filtered],
   );
 
   // El Balance SIEMPRE se calcula con los créditos detectados en los propios
   // movimientos, nunca con el ingreso cargado a mano — si el sueldo declarado
-  // no incluye TODOS los créditos reales (transferencias recibidas, reintegros,
-  // etc.), reemplazarlo rompe la cuenta contra el banco. El ingreso manual se
-  // muestra aparte, solo como referencia informativa.
+  // no incluye TODOS los créditos reales (reintegros, etc.), reemplazarlo
+  // rompe la cuenta contra el banco. El ingreso manual se muestra aparte,
+  // solo como referencia informativa.
   const income = detectedIncome;
 
   const totals = useMemo(() => totalsByCategory(filtered), [filtered]);
-  const expenses = useMemo(() => Object.values(totals).reduce((a, b) => a + b, 0), [totals]);
-  const balance = income - expenses;
+  const expenses = useMemo(
+    () =>
+      Object.entries(totals).reduce((sum, [category, amount]) => (category === "transferencias" ? sum : sum + amount), 0),
+    [totals],
+  );
+  // Ingresos - Gastos + neto de transferencias sigue dando exactamente el
+  // flujo neto real del período (se puede verificar: es la misma cuenta que
+  // antes, solo reagrupada), así que el Balance sigue cerrando con el banco.
+  const balance = income - expenses + transfersNet;
 
   const earliestDate = useMemo(
     () => (filtered.length === 0 ? null : filtered.reduce((min, t) => (t.date < min ? t.date : min), filtered[0].date)),
@@ -81,7 +100,13 @@ export function Dashboard({ onGoToUpload }: { onGoToUpload: () => void }) {
       </div>
 
       {bankBalanceSnapshot && <RealBalanceCard snapshot={bankBalanceSnapshot} />}
-      <SummaryCards income={income} expenses={expenses} manualIncome={manualIncome} />
+      <SummaryCards
+        income={income}
+        expenses={expenses}
+        manualIncome={manualIncome}
+        transfersNet={transfersNet}
+        balance={balance}
+      />
       <BalanceCheck balance={balance} earliestDate={earliestDate} />
       <CategoryDonutChart totals={totals} onSelectCategory={setModalCategory} />
       <MonthlyTrendChart transactions={transactions} />
