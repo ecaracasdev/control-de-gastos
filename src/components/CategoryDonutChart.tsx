@@ -5,7 +5,13 @@ import { Card } from "./ui/Card";
 import { EmptyState } from "./ui/EmptyState";
 import { PieChart as PieIcon } from "lucide-react";
 
-export function CategoryDonutChart({ totals }: { totals: Record<Category, number> }) {
+export function CategoryDonutChart({
+  totals,
+  onSelectCategory,
+}: {
+  totals: Record<Category, number>;
+  onSelectCategory?: (category: Category) => void;
+}) {
   const total = CATEGORY_ORDER.reduce((sum, c) => sum + totals[c], 0);
   // Ordenado una sola vez y reusado tal cual por el gráfico y la leyenda —
   // antes cada uno ordenaba (o no) por su cuenta y con .sort() mutando el
@@ -54,7 +60,12 @@ export function CategoryDonutChart({ totals }: { totals: Record<Category, number
                 strokeWidth={2}
               >
                 {data.map((entry) => (
-                  <Cell key={entry.key} fill={entry.color} />
+                  <Cell
+                    key={entry.key}
+                    fill={entry.color}
+                    style={{ cursor: onSelectCategory ? "pointer" : undefined, outline: "none" }}
+                    onClick={() => onSelectCategory?.(entry.key)}
+                  />
                 ))}
               </Pie>
               <Tooltip
@@ -78,7 +89,12 @@ export function CategoryDonutChart({ totals }: { totals: Record<Category, number
 
         <ul className="space-y-2.5">
           {data.map((entry) => (
-            <li key={entry.key} className="flex items-center justify-between gap-3 text-sm">
+            <li
+              key={entry.key}
+              onClick={() => onSelectCategory?.(entry.key)}
+              className="flex items-center justify-between gap-3 rounded-lg text-sm"
+              style={{ cursor: onSelectCategory ? "pointer" : undefined }}
+            >
               <span className="flex items-center gap-2 min-w-0" style={{ color: "var(--text-primary)" }}>
                 <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: entry.color }} />
                 <span className="truncate">{entry.name}</span>

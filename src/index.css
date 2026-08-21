@@ -85,3 +85,9 @@ body {
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* Recharts deja el foco del navegador (un recuadro azul) en el sector que
+   se clickeó — lo sacamos porque no lo usamos como indicador de selección. */
+.recharts-wrapper svg *:focus {
+  outline: none;
+}

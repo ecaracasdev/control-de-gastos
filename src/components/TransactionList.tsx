@@ -28,13 +28,15 @@ function exportCsv(rows: { date: string; description: string; category: Category
   URL.revokeObjectURL(url);
 }
 
+type FilterKey = Category | "ingreso";
+
 export function TransactionList() {
   const transactions = useFinanceStore((s) => s.transactions);
   const deleteTransaction = useFinanceStore((s) => s.deleteTransaction);
 
   const [search, setSearch] = useState("");
   const [selectedMonth, setSelectedMonth] = useState<string | "all">("all");
-  const [selectedCategories, setSelectedCategories] = useState<Set<Category>>(new Set());
+  const [selectedFilters, setSelectedFilters] = useState<Set<FilterKey>>(new Set());
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const months = useMemo(
@@ -42,8 +44,8 @@ export function TransactionList() {
     [transactions],
   );
 
-  function toggleCategory(c: Category) {
-    setSelectedCategories((prev) => {
+  function toggleFilter(c: FilterKey) {
+    setSelectedFilters((prev) => {
       const next = new Set(prev);
       if (next.has(c)) next.delete(c);
       else next.add(c);
@@ -54,10 +56,18 @@ export function TransactionList() {
   const filtered = useMemo(() => {
     return transactions
       .filter((t) => selectedMonth === "all" || monthKey(t.date) === selectedMonth)
-      .filter((t) => selectedCategories.size === 0 || selectedCategories.has(t.category))
+      .filter((t) => {
+        if (selectedFilters.size === 0) return true;
+        // Un ingreso (monto >= 0) solo se ve si el filtro "Ingresos" está
+        // activo, sin importar qué categoría interna tenga — si no, un
+        // filtro de gasto como "Compras" siempre te mezclaba los ingresos
+        // que internamente quedaron en esa misma categoría.
+        if (t.amount >= 0) return selectedFilters.has("ingreso");
+        return selectedFilters.has(t.category);
+      })
       .filter((t) => t.description.toLowerCase().includes(search.toLowerCase()))
       .sort((a, b) => b.date.localeCompare(a.date));
-  }, [transactions, selectedMonth, selectedCategories, search]);
+  }, [transactions, selectedMonth, selectedFilters, search]);
 
   if (transactions.length === 0) {
     return (
@@ -96,12 +106,12 @@ export function TransactionList() {
 
       <div className="flex flex-wrap gap-2">
         {CATEGORY_ORDER.map((c) => {
-          const active = selectedCategories.has(c);
+          const active = selectedFilters.has(c);
           const meta = CATEGORY_META[c];
           return (
             <button
               key={c}
-              onClick={() => toggleCategory(c)}
+              onClick={() => toggleFilter(c)}
               className="flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer"
               style={{
                 borderColor: active ? meta.colorVar : "var(--border)",
@@ -114,9 +124,26 @@ export function TransactionList() {
             </button>
           );
         })}
-        {selectedCategories.size > 0 && (
+        {(() => {
+          const active = selectedFilters.has("ingreso");
+          return (
+            <button
+              onClick={() => toggleFilter("ingreso")}
+              className="flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer"
+              style={{
+                borderColor: active ? "var(--status-good)" : "var(--border)",
+                color: active ? "var(--status-good)" : "var(--text-secondary)",
+                background: active ? "color-mix(in srgb, var(--status-good) 12%, transparent)" : "transparent",
+              }}
+            >
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--status-good)" }} />
+              Ingresos
+            </button>
+          );
+        })()}
+        {selectedFilters.size > 0 && (
           <button
-            onClick={() => setSelectedCategories(new Set())}
+            onClick={() => setSelectedFilters(new Set())}
             className="text-xs underline cursor-pointer"
             style={{ color: "var(--text-muted)" }}
           >

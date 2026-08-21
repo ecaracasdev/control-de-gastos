@@ -4,18 +4,21 @@ import { SummaryCards } from "./SummaryCards";
 import { BalanceCheck } from "./BalanceCheck";
 import { RealBalanceCard } from "./RealBalanceCard";
 import { CategoryDonutChart } from "./CategoryDonutChart";
+import { CategoryDetailModal } from "./CategoryDetailModal";
 import { MonthlyTrendChart } from "./MonthlyTrendChart";
 import { MonthFilter } from "./MonthFilter";
 import { Card } from "./ui/Card";
 import { EmptyState } from "./ui/EmptyState";
 import { UploadCloud } from "lucide-react";
 import { Button } from "./ui/Button";
+import type { Category } from "../types";
 
 export function Dashboard({ onGoToUpload }: { onGoToUpload: () => void }) {
   const transactions = useFinanceStore((s) => s.transactions);
   const incomeEntries = useFinanceStore((s) => s.incomeEntries);
   const bankBalanceSnapshot = useFinanceStore((s) => s.bankBalanceSnapshot);
   const [selectedMonth, setSelectedMonth] = useState<string | "all">("all");
+  const [modalCategory, setModalCategory] = useState<Category | null>(null);
 
   const months = useMemo(
     () => [...new Set(transactions.map((t) => monthKey(t.date)))].sort().reverse(),
@@ -80,8 +83,16 @@ export function Dashboard({ onGoToUpload }: { onGoToUpload: () => void }) {
       {bankBalanceSnapshot && <RealBalanceCard snapshot={bankBalanceSnapshot} />}
       <SummaryCards income={income} expenses={expenses} manualIncome={manualIncome} />
       <BalanceCheck balance={balance} earliestDate={earliestDate} />
-      <CategoryDonutChart totals={totals} />
+      <CategoryDonutChart totals={totals} onSelectCategory={setModalCategory} />
       <MonthlyTrendChart transactions={transactions} />
+
+      {modalCategory && (
+        <CategoryDetailModal
+          category={modalCategory}
+          transactions={filtered.filter((t) => t.category === modalCategory && t.amount < 0)}
+          onClose={() => setModalCategory(null)}
+        />
+      )}
     </div>
   );
 }
