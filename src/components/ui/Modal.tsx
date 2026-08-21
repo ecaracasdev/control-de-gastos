@@ -16,13 +16,23 @@ export function Modal({
       if (e.key === "Escape") onClose();
     }
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    // Bloqueamos el scroll de la página de fondo mientras el modal está
+    // abierto — si no, al llegar al final de la lista del modal el scroll
+    // "se pasaba" a la página de atrás.
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
   }, [onClose]);
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      style={{ overscrollBehavior: "contain" }}
       onClick={onClose}
+      onWheel={(e) => e.preventDefault()}
     >
       <div
         className="flex max-h-[80vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border shadow-lg"
@@ -45,7 +55,9 @@ export function Modal({
             <X size={18} />
           </button>
         </div>
-        <div className="overflow-y-auto">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto" style={{ overscrollBehavior: "contain" }} onWheel={(e) => e.stopPropagation()}>
+          {children}
+        </div>
       </div>
     </div>
   );
