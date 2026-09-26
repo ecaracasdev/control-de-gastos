@@ -8,6 +8,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 - Taxonomía de categoría + subcategoría (Comida, Transporte, Salud, Servicios y suscripciones, Compras, Transferencias a personas, Pago de tarjeta de crédito, Otros), en preparación para importar Mercado Pago.
 
 - Se puede importar el resumen de cuenta en pesos de Mercado Pago (PDF) como una fuente más al cargar un documento, con categorización automática (delivery, restaurantes/QR, peajes, farmacia, transferencias a personas, etc.).
+- Al hacer clic en una categoría del gráfico de torta, el detalle ahora muestra también el desglose por subcategoría (para las categorías que tienen: Comida, Transporte, Salud, Servicios y suscripciones, Otros).
 
 ### Changed
 - Los movimientos ya guardados se migran automáticamente a la taxonomía nueva (no se pierde nada de lo cargado antes).
