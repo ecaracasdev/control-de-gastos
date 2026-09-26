@@ -15,6 +15,8 @@ interface Rule {
   exclude?: RegExp[];
   /** si está presente, la regla solo aplica cuando el movimiento viene de ese banco/fuente */
   onlyWhenBank?: Bank;
+  /** "alta" por default; bajarla cuando la regla es una adivinanza (gateway genérico, catch-all) */
+  confidence?: "alta" | "media";
 }
 
 // El orden importa: se evalúa de arriba hacia abajo y gana el primer match.
@@ -58,10 +60,12 @@ const RULES: Rule[] = [
   },
   {
     // EBANX es un gateway de pagos genérico; en la cuenta de este usuario
-    // procesa específicamente los cobros de Uber.
+    // procesa específicamente los cobros de Uber, pero podría procesar otra
+    // cosa a futuro, así que queda con confianza media.
     category: "transporte",
     subcategory: "apps_transporte",
     patterns: [/ebanx/, /\buber\b/, /cabify/, /\bdidi\b/],
+    confidence: "media",
   },
   {
     category: "transporte",
@@ -81,9 +85,11 @@ const RULES: Rule[] = [
   {
     // Pagos con QR en el momento (comercio físico): se chequea después de
     // farmacia/peajes/delivery para no comerse esos casos más específicos.
+    // Es un catch-all (podría no ser un restaurante), confianza media.
     category: "comida",
     subcategory: "restaurantes_qr",
     patterns: [/pago con qr/],
+    confidence: "media",
   },
   {
     category: "servicios_suscripciones",
@@ -152,16 +158,16 @@ const RULES: Rule[] = [
 export function categorize(
   description: string,
   bank: Bank,
-): { category: Category; subcategory?: Subcategory } {
+): { category: Category; subcategory?: Subcategory; confidence: "alta" | "media" } {
   const text = normalize(description);
   for (const rule of RULES) {
     if (rule.onlyWhenBank && rule.onlyWhenBank !== bank) continue;
     if (rule.exclude?.some((re) => re.test(text))) continue;
     if (rule.patterns.some((re) => re.test(text))) {
-      return { category: rule.category, subcategory: rule.subcategory };
+      return { category: rule.category, subcategory: rule.subcategory, confidence: rule.confidence ?? "alta" };
     }
   }
-  return { category: "otros" };
+  return { category: "otros", confidence: "media" };
 }
 
 export function detectInstallment(

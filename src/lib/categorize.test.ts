@@ -16,27 +16,27 @@ describe("categorize", () => {
 
   it("detecta farmacia como salud, no como comida, aun viniendo de un pago con QR", () => {
     const r = categorize("Pago con QR Farmacia Sepia", "mercadopago");
-    expect(r).toEqual({ category: "salud", subcategory: "farmacia" });
+    expect(r).toEqual({ category: "salud", subcategory: "farmacia", confidence: "alta" });
   });
 
-  it("detecta un pago con QR genérico como comida/restaurantes", () => {
+  it("detecta un pago con QR genérico como comida/restaurantes, con confianza media (es un catch-all)", () => {
     const r = categorize("Pago con QR Panadería Lean", "mercadopago");
-    expect(r).toEqual({ category: "comida", subcategory: "restaurantes_qr" });
+    expect(r).toEqual({ category: "comida", subcategory: "restaurantes_qr", confidence: "media" });
   });
 
   it("detecta peajes de AUBASA como transporte", () => {
     const r = categorize("Pago AUBASA", "mercadopago");
-    expect(r).toEqual({ category: "transporte", subcategory: "peajes" });
+    expect(r).toEqual({ category: "transporte", subcategory: "peajes", confidence: "alta" });
   });
 
-  it("detecta EBANX como Uber (transporte/apps_transporte)", () => {
+  it("detecta EBANX como Uber (transporte/apps_transporte), con confianza media (gateway genérico)", () => {
     const r = categorize("Pago EBANX S.A.", "mercadopago");
-    expect(r).toEqual({ category: "transporte", subcategory: "apps_transporte" });
+    expect(r).toEqual({ category: "transporte", subcategory: "apps_transporte", confidence: "media" });
   });
 
   it("detecta delivery de PedidosYa como comida", () => {
     const r = categorize("Pago Dlo*pedidosya market", "mercadopago");
-    expect(r).toEqual({ category: "comida", subcategory: "delivery" });
+    expect(r).toEqual({ category: "comida", subcategory: "delivery", confidence: "alta" });
   });
 
   it("una transferencia a una persona en Mercado Pago cuenta como gasto real", () => {

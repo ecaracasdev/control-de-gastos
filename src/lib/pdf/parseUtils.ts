@@ -9,7 +9,7 @@ const DATE_TEXT_RE =
   /^(\d{1,2})[\/\- ]?(ene|feb|mar|abr|may|jun|jul|ago|sep|set|oct|nov|dic)[\/\- ]?(\d{2,4})?\b/i;
 
 export function parseArgentineAmount(raw: string): number {
-  const negative = /^-/.test(raw.trim()) || /-\s*$/.test(raw.trim());
+  const negative = raw.includes("-");
   const digits = raw.replace(/[^\d,]/g, "").replace(",", ".");
   const value = Number.parseFloat(digits);
   if (Number.isNaN(value)) return 0;
