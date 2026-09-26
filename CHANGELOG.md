@@ -11,6 +11,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 - Al hacer clic en una categoría del gráfico de torta, el detalle ahora muestra también el desglose por subcategoría (para las categorías que tienen: Comida, Transporte, Salud, Servicios y suscripciones, Otros).
 
 ### Changed
+- El aviso de "anotá a mano en qué se gastó" de una transferencia a Mercado Pago ya no aparece cuando esa transferencia tiene su contraparte real importada (el detalle real ya está disponible en otros movimientos).
+
+### Changed
 - Los movimientos ya guardados se migran automáticamente a la taxonomía nueva (no se pierde nada de lo cargado antes).
 - `categorize()` ahora también informa qué tan confiable es la categorización detectada, para que los casos más ambiguos (ej. pagos vía EBANX, un "Pago con QR" genérico) se marquen para revisar en vez de darlos por buenos.
 

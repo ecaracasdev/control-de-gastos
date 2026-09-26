@@ -8,6 +8,7 @@ import { MonthFilter } from "./MonthFilter";
 import { CATEGORY_META, CATEGORY_ORDER, type Category } from "../types";
 import { formatCurrency, formatDate } from "../lib/format";
 import { monthKey, useFinanceStore } from "../store/useFinanceStore";
+import { findReconciledInternalTransferIds } from "../lib/reconciliation";
 import { MercadoPagoDetail } from "./MercadoPagoDetail";
 import { ImportedFiles } from "./ImportedFiles";
 
@@ -38,6 +39,11 @@ export function TransactionList() {
   const [selectedMonth, setSelectedMonth] = useState<string | "all">("all");
   const [selectedFilters, setSelectedFilters] = useState<Set<FilterKey>>(new Set());
   const [expanded, setExpanded] = useState<string | null>(null);
+
+  // Movimientos internos que ya tienen su contraparte real de Mercado Pago
+  // importada (ver reconciliation.ts): para esos ya no hace falta anotar a
+  // mano en qué se gastó, el detalle real ya está en otros movimientos.
+  const reconciledIds = useMemo(() => findReconciledInternalTransferIds(transactions), [transactions]);
 
   const months = useMemo(
     () => [...new Set(transactions.map((t) => monthKey(t.date)))].sort().reverse(),
@@ -159,7 +165,7 @@ export function TransactionList() {
           <ul>
             {filtered.map((t) => {
               const meta = CATEGORY_META[t.category];
-              const isMpTopUp = t.category === "movimientos_internos" && t.amount < 0;
+              const isMpTopUp = t.category === "movimientos_internos" && t.amount < 0 && !reconciledIds.has(t.id);
               const isOpen = expanded === t.id;
               return (
                 <li key={t.id} className="border-b last:border-0" style={{ borderColor: "var(--border)" }}>

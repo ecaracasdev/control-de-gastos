@@ -30,8 +30,8 @@ export function MercadoPagoDetail({ transaction }: { transaction: Transaction })
       style={{ borderColor: "var(--border)", background: "var(--page-bg)" }}
     >
       <p className="mb-2 text-xs" style={{ color: "var(--text-muted)" }}>
-        Esta transferencia fue a Mercado Pago. Anotá manualmente en qué se usó esa plata — cuando
-        conectemos la cuenta de Mercado Pago esto se va a completar solo.
+        Esta transferencia fue a Mercado Pago. Anotá manualmente en qué se usó esa plata, o importá el
+        resumen de Mercado Pago desde "Cargar documento" para que este detalle se complete solo.
       </p>
 
       {details.length > 0 && (
