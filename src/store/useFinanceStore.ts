@@ -25,6 +25,15 @@ export interface BankBalanceSnapshot {
   sourceFile: string;
 }
 
+export interface BackupData {
+  version: 1;
+  exportedAt: string;
+  transactions: Transaction[];
+  incomeEntries: IncomeEntry[];
+  openingBalance: number | null;
+  bankBalanceSnapshot: BankBalanceSnapshot | null;
+}
+
 interface FinanceState {
   transactions: Transaction[];
   incomeEntries: IncomeEntry[];
@@ -49,6 +58,8 @@ interface FinanceState {
   removeIncome: (id: string) => void;
 
   clearAll: () => void;
+  exportBackup: () => BackupData;
+  restoreBackup: (data: BackupData) => void;
 }
 
 function isDuplicate(a: Transaction | Omit<Transaction, "id">, b: Transaction): boolean {
@@ -167,6 +178,26 @@ export const useFinanceStore = create<FinanceState>()(
 
       clearAll: () =>
         set({ transactions: [], incomeEntries: [], openingBalance: null, bankBalanceSnapshot: null }),
+
+      exportBackup: () => {
+        const state = get();
+        return {
+          version: 1,
+          exportedAt: new Date().toISOString(),
+          transactions: state.transactions,
+          incomeEntries: state.incomeEntries,
+          openingBalance: state.openingBalance,
+          bankBalanceSnapshot: state.bankBalanceSnapshot,
+        };
+      },
+
+      restoreBackup: (data) =>
+        set({
+          transactions: data.transactions,
+          incomeEntries: data.incomeEntries,
+          openingBalance: data.openingBalance,
+          bankBalanceSnapshot: data.bankBalanceSnapshot,
+        }),
     }),
     // version 1: se agregó la taxonomía de categoría + subcategoría. Se migran
     // las 6 categorías viejas 1 a 1 a las nuevas (ver migrateCategory) en vez

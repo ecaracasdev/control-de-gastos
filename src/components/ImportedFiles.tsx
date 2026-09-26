@@ -1,18 +1,59 @@
-import { useState } from "react";
-import { ChevronDown, ChevronUp, FileSpreadsheet, Trash2 } from "lucide-react";
+import { useRef, useState } from "react";
+import { ChevronDown, ChevronUp, Download, FileSpreadsheet, Trash2, Upload } from "lucide-react";
 import { Card } from "./ui/Card";
 import { formatDate } from "../lib/format";
-import { sourceFileSummaries, useFinanceStore } from "../store/useFinanceStore";
+import { sourceFileSummaries, useFinanceStore, type BackupData } from "../store/useFinanceStore";
+
+function isBackupData(value: unknown): value is BackupData {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "version" in value &&
+    "transactions" in value &&
+    "incomeEntries" in value &&
+    Array.isArray((value as BackupData).transactions) &&
+    Array.isArray((value as BackupData).incomeEntries)
+  );
+}
 
 export function ImportedFiles() {
   const transactions = useFinanceStore((s) => s.transactions);
   const deleteBySourceFile = useFinanceStore((s) => s.deleteBySourceFile);
   const clearAll = useFinanceStore((s) => s.clearAll);
+  const exportBackup = useFinanceStore((s) => s.exportBackup);
+  const restoreBackup = useFinanceStore((s) => s.restoreBackup);
   const [open, setOpen] = useState(false);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [confirmingAll, setConfirmingAll] = useState(false);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const files = sourceFileSummaries(transactions);
+
+  function downloadBackup() {
+    const data = exportBackup();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `mis-finanzas-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleRestoreFile(file: File) {
+    setRestoreError(null);
+    try {
+      const parsed: unknown = JSON.parse(await file.text());
+      if (!isBackupData(parsed)) {
+        setRestoreError("Ese archivo no tiene el formato de un backup de Mis Finanzas.");
+        return;
+      }
+      restoreBackup(parsed);
+    } catch {
+      setRestoreError("No pude leer ese archivo. Verificá que sea un backup exportado desde acá.");
+    }
+  }
 
   return (
     <Card padded={false}>
@@ -104,15 +145,47 @@ export function ImportedFiles() {
                 </button>
               </div>
             ) : (
-              <button
-                onClick={() => setConfirmingAll(true)}
-                className="text-xs underline cursor-pointer"
-                style={{ color: "var(--text-muted)" }}
-              >
-                borrar todos los movimientos cargados
-              </button>
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  onClick={downloadBackup}
+                  className="flex items-center gap-1 text-xs underline cursor-pointer"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  <Download size={12} /> exportar backup completo
+                </button>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-1 text-xs underline cursor-pointer"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  <Upload size={12} /> restaurar backup
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/json,.json"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleRestoreFile(file);
+                    e.target.value = "";
+                  }}
+                />
+                <button
+                  onClick={() => setConfirmingAll(true)}
+                  className="text-xs underline cursor-pointer"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  borrar todos los movimientos cargados
+                </button>
+              </div>
             )}
           </div>
+          {restoreError && (
+            <p className="px-4 pb-3 text-xs" style={{ color: "var(--status-critical)" }}>
+              {restoreError}
+            </p>
+          )}
         </div>
       )}
     </Card>
