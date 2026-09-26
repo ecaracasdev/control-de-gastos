@@ -8,7 +8,7 @@ Este archivo se va a ir ampliando con más pautas a medida que surjan. Cuando un
 
 1. **Comentarios en el código**: no agregar comentarios porque sí. Antes de escribir un comentario, avisar qué comentario se quiere agregar y en qué línea/archivo, y esperar autorización explícita antes de escribirlo.
 
-2. **Chequeos obligatorios antes de dar un cambio por terminado**: correr `npm run check` (typecheck + lint + tests) y que pase limpio. Si se toca lógica de parseo/categorización, agregar o actualizar tests de esa lógica en el mismo cambio, no dejarlo para después.
+2. **Chequeos obligatorios antes de dar un cambio por terminado**: correr `npm run check` (typecheck + lint + tests) y que pase limpio. Si se toca lógica de parseo/categorización, agregar o actualizar tests de esa lógica en el mismo cambio, no dejarlo para después. Si el cambio toca un flujo de usuario completo (importar, revisar, guardar, ver el panel), correr también `npm run test:e2e` (Playwright) y agregar/actualizar el escenario correspondiente en `e2e/`.
 
 3. **Lint/formato centralizado**: la única fuente de verdad de reglas de lint es `.oxlintrc.json`, y la configuración de editor vive en `.vscode/settings.json` (versionado, no ignorado) para que aplique igual sin importar la config personal de VS Code de quien lo abra. Si hace falta ajustar una regla, se edita ahí, no en el editor de cada uno.
 

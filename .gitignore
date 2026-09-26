@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Playwright
+test-results/
+playwright-report/
+
 # Datos bancarios/financieros reales usados solo para probar el parser localmente
 example_files/
 
