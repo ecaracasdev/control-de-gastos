@@ -5,6 +5,7 @@ import { TransactionList } from "./components/TransactionList";
 import { UploadPanel } from "./components/UploadPanel";
 import { ReviewImport } from "./components/ReviewImport";
 import { IncomeManager } from "./components/IncomeManager";
+import { PwaUpdatePrompt } from "./components/PwaUpdatePrompt";
 import type { ParsedTransactionDraft } from "./types";
 
 interface PendingImport {
@@ -50,6 +51,7 @@ function App() {
             />
           ))}
       </main>
+      <PwaUpdatePrompt />
     </div>
   );
 }
