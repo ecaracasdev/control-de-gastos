@@ -1,0 +1,7 @@
+{
+  "eslint.enable": false,
+  "oxc.enable": true,
+  "oxc.lint.run": "onType",
+  "prettier.enable": false,
+  "editor.formatOnSave": false
+}
