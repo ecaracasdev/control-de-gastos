@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useFinanceStore, monthKey, totalsByCategory } from "../store/useFinanceStore";
+import { findReconciledInternalTransferIds } from "../lib/reconciliation";
 import { SummaryCards } from "./SummaryCards";
 import { BalanceCheck } from "./BalanceCheck";
 import { RealBalanceCard } from "./RealBalanceCard";
@@ -37,21 +38,34 @@ export function Dashboard({ onGoToUpload }: { onGoToUpload: () => void }) {
     return entries.reduce((sum, e) => sum + e.amount, 0);
   }, [incomeEntries, selectedMonth]);
 
+  // "movimientos_internos" que son la misma transferencia vista desde el
+  // banco y desde Mercado Pago (ej. transferencia a MP + "Ingreso de dinero"
+  // en MP) se excluyen del panel del hogar: si se cuentan los dos lados, esa
+  // plata queda contada como gasto Y como ingreso a la vez, cuando en
+  // realidad no cambió el patrimonio del hogar (se gastó de verdad recién
+  // cuando sale de Mercado Pago, y eso ya se categoriza aparte).
+  const reconciledIds = useMemo(() => findReconciledInternalTransferIds(transactions), [transactions]);
+  const netted = useMemo(() => filtered.filter((t) => !reconciledIds.has(t.id)), [filtered, reconciledIds]);
+  const nettedAll = useMemo(
+    () => transactions.filter((t) => !reconciledIds.has(t.id)),
+    [transactions, reconciledIds],
+  );
+
   // Las transferencias (a otras personas, no a Mercado Pago) se tratan aparte:
   // si mandás $900.000 y te los devuelven, sumar esa devolución como "ingreso"
   // sin contar el envío como "gasto" infla ambos números con plata que en
   // realidad ya era tuya. Se muestran como un neto propio en vez de mezclarlas.
   const detectedIncome = useMemo(
     () =>
-      filtered
+      netted
         .filter((t) => t.amount > 0 && t.category !== "transferencias")
         .reduce((sum, t) => sum + t.amount, 0),
-    [filtered],
+    [netted],
   );
 
   const transfersNet = useMemo(
-    () => filtered.filter((t) => t.category === "transferencias").reduce((sum, t) => sum + t.amount, 0),
-    [filtered],
+    () => netted.filter((t) => t.category === "transferencias").reduce((sum, t) => sum + t.amount, 0),
+    [netted],
   );
 
   // El Balance SIEMPRE se calcula con los créditos detectados en los propios
@@ -61,7 +75,7 @@ export function Dashboard({ onGoToUpload }: { onGoToUpload: () => void }) {
   // solo como referencia informativa.
   const income = detectedIncome;
 
-  const totals = useMemo(() => totalsByCategory(filtered), [filtered]);
+  const totals = useMemo(() => totalsByCategory(netted), [netted]);
   const expenses = useMemo(
     () =>
       Object.entries(totals).reduce((sum, [category, amount]) => (category === "transferencias" ? sum : sum + amount), 0),
@@ -69,12 +83,42 @@ export function Dashboard({ onGoToUpload }: { onGoToUpload: () => void }) {
   );
   // Ingresos - Gastos + neto de transferencias sigue dando exactamente el
   // flujo neto real del período (se puede verificar: es la misma cuenta que
-  // antes, solo reagrupada), así que el Balance sigue cerrando con el banco.
+  // antes, solo reagrupada). Este es el balance "del hogar" (banco + Mercado
+  // Pago combinados); el que compara contra el saldo real del banco es
+  // bankBalance, más abajo.
   const balance = income - expenses + transfersNet;
 
+  // "¿Cierra con tu banco?" se calcula SOLO con movimientos del banco: el
+  // detalle de en qué se gastó adentro de Mercado Pago nunca toca la cuenta
+  // bancaria (esa plata ya salió del banco al hacer la transferencia), así
+  // que mezclarlo rompe la comparación contra el saldo real que reporta el
+  // banco.
+  const bankOnly = useMemo(() => filtered.filter((t) => t.bank !== "mercadopago"), [filtered]);
+  const bankIncome = useMemo(
+    () =>
+      bankOnly
+        .filter((t) => t.amount > 0 && t.category !== "transferencias")
+        .reduce((sum, t) => sum + t.amount, 0),
+    [bankOnly],
+  );
+  const bankTransfersNet = useMemo(
+    () => bankOnly.filter((t) => t.category === "transferencias").reduce((sum, t) => sum + t.amount, 0),
+    [bankOnly],
+  );
+  const bankTotals = useMemo(() => totalsByCategory(bankOnly), [bankOnly]);
+  const bankExpenses = useMemo(
+    () =>
+      Object.entries(bankTotals).reduce(
+        (sum, [category, amount]) => (category === "transferencias" ? sum : sum + amount),
+        0,
+      ),
+    [bankTotals],
+  );
+  const bankBalance = bankIncome - bankExpenses + bankTransfersNet;
+
   const earliestDate = useMemo(
-    () => (filtered.length === 0 ? null : filtered.reduce((min, t) => (t.date < min ? t.date : min), filtered[0].date)),
-    [filtered],
+    () => (bankOnly.length === 0 ? null : bankOnly.reduce((min, t) => (t.date < min ? t.date : min), bankOnly[0].date)),
+    [bankOnly],
   );
 
   if (transactions.length === 0) {
@@ -107,14 +151,14 @@ export function Dashboard({ onGoToUpload }: { onGoToUpload: () => void }) {
         transfersNet={transfersNet}
         balance={balance}
       />
-      <BalanceCheck balance={balance} earliestDate={earliestDate} />
+      <BalanceCheck balance={bankBalance} earliestDate={earliestDate} />
       <CategoryDonutChart totals={totals} onSelectCategory={setModalCategory} />
-      <MonthlyTrendChart transactions={transactions} />
+      <MonthlyTrendChart transactions={nettedAll} />
 
       {modalCategory && (
         <CategoryDetailModal
           category={modalCategory}
-          transactions={filtered.filter((t) => t.category === modalCategory && t.amount < 0)}
+          transactions={netted.filter((t) => t.category === modalCategory && t.amount < 0)}
           onClose={() => setModalCategory(null)}
         />
       )}
