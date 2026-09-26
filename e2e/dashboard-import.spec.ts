@@ -11,7 +11,6 @@ test("importar un extracto, revisarlo, guardarlo y ver el dashboard actualizado"
   await page.goto("/");
 
   await page.getByRole("button", { name: "Cargar documento" }).click();
-  await page.getByRole("button", { name: "Elegir archivo" }).click();
 
   const buffer = await buildFakeStatementXlsx();
   await page.locator('input[type="file"]').setInputFiles({
