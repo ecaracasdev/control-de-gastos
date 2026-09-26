@@ -2,20 +2,55 @@ import { describe, expect, it } from "vitest";
 import { categorize, detectInstallment } from "./categorize";
 
 describe("categorize", () => {
-  it("detecta transferencia a Mercado Pago", () => {
-    expect(categorize("Transferencia MERCADOPAGO")).toBe("mercado_pago");
+  it("detecta un pase a la propia cuenta de Mercado Pago como movimiento interno", () => {
+    expect(categorize("Transferencia MERCADOPAGO", "santander").category).toBe("movimientos_internos");
   });
 
   it("no confunde una transferencia recibida vía Mercado Pago con un envío propio", () => {
-    expect(categorize("Transferencia recibida MERCADOPAGO")).toBe("transferencias");
+    expect(categorize("Transferencia recibida MERCADOPAGO", "santander").category).toBe("transferencias");
   });
 
   it("detecta pago de tarjeta de crédito", () => {
-    expect(categorize("Pago tarjeta de credito Visa")).toBe("pago_tarjeta_credito");
+    expect(categorize("Pago tarjeta de credito Visa", "santander").category).toBe("pago_tarjeta_credito");
+  });
+
+  it("detecta farmacia como salud, no como comida, aun viniendo de un pago con QR", () => {
+    const r = categorize("Pago con QR Farmacia Sepia", "mercadopago");
+    expect(r).toEqual({ category: "salud", subcategory: "farmacia" });
+  });
+
+  it("detecta un pago con QR genérico como comida/restaurantes", () => {
+    const r = categorize("Pago con QR Panadería Lean", "mercadopago");
+    expect(r).toEqual({ category: "comida", subcategory: "restaurantes_qr" });
+  });
+
+  it("detecta peajes de AUBASA como transporte", () => {
+    const r = categorize("Pago AUBASA", "mercadopago");
+    expect(r).toEqual({ category: "transporte", subcategory: "peajes" });
+  });
+
+  it("detecta EBANX como Uber (transporte/apps_transporte)", () => {
+    const r = categorize("Pago EBANX S.A.", "mercadopago");
+    expect(r).toEqual({ category: "transporte", subcategory: "apps_transporte" });
+  });
+
+  it("detecta delivery de PedidosYa como comida", () => {
+    const r = categorize("Pago Dlo*pedidosya market", "mercadopago");
+    expect(r).toEqual({ category: "comida", subcategory: "delivery" });
+  });
+
+  it("una transferencia a una persona en Mercado Pago cuenta como gasto real", () => {
+    const r = categorize("Transferencia enviada Janetsi Yamilet Caro Ramirez", "mercadopago");
+    expect(r.category).toBe("transferencias_personas");
+  });
+
+  it("la misma frase en el banco (no Mercado Pago) sigue siendo transferencia excluida del gasto", () => {
+    const r = categorize("Transferencia enviada a Juan Perez", "santander");
+    expect(r.category).toBe("transferencias");
   });
 
   it("cae en otros cuando no matchea ninguna regla", () => {
-    expect(categorize("XYZ sin sentido 123")).toBe("otros");
+    expect(categorize("XYZ sin sentido 123", "santander").category).toBe("otros");
   });
 });
 
