@@ -40,5 +40,13 @@ test("importar un extracto, revisarlo, guardarlo y ver el dashboard actualizado"
   await expect(page.getByText("Servicios y suscripciones").first()).toBeVisible();
   await expect(page.getByText("Comida").first()).toBeVisible();
 
+  // Drill-down: clickear una categoría con subcategoría abre el detalle con
+  // el desglose (Farmacia Sepia es la única transacción de Salud, así que
+  // el desglose por subcategoría debería mostrar el 100% en Farmacia).
+  await page.getByText("Salud").first().click();
+  await expect(page.getByText("Por subcategoría")).toBeVisible();
+  await expect(page.getByText("Farmacia", { exact: true })).toBeVisible();
+  await expect(page.getByText("100%")).toBeVisible();
+
   expect(errors, `Errores de consola: ${errors.join("\n")}`).toEqual([]);
 });
