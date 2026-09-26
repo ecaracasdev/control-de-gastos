@@ -10,6 +10,7 @@ import type { Bank, ParsedTransactionDraft } from "../types";
 const BANKS: { key: Bank; label: string }[] = [
   { key: "santander", label: "Banco Santander" },
   { key: "nacion", label: "Banco Nación" },
+  { key: "mercadopago", label: "Mercado Pago" },
   { key: "manual", label: "Otro / genérico" },
 ];
 
