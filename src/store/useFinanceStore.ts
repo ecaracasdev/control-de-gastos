@@ -6,6 +6,19 @@ function makeId(): string {
   return crypto.randomUUID();
 }
 
+const CATEGORY_MIGRATION_V1: Record<string, Category> = {
+  compras_tarjeta: "compras",
+  pago_tarjeta_credito: "pago_tarjeta_credito",
+  mercado_pago: "movimientos_internos",
+  transferencias: "transferencias",
+  debitos_automaticos: "servicios_suscripciones",
+  otros: "otros",
+};
+
+export function migrateCategory(oldCategory: string): Category {
+  return CATEGORY_MIGRATION_V1[oldCategory] ?? "otros";
+}
+
 export interface BankBalanceSnapshot {
   date: string;
   amount: number;
@@ -155,10 +168,24 @@ export const useFinanceStore = create<FinanceState>()(
       clearAll: () =>
         set({ transactions: [], incomeEntries: [], openingBalance: null, bankBalanceSnapshot: null }),
     }),
-    // v2: se rediseñaron las categorías (se separó Mercado Pago, pago de
-    // tarjeta de crédito y se sacó "suscripciones"), así que los datos
-    // viejos con el esquema anterior no son compatibles y se abandonan.
-    { name: "control-de-gastos-v2" },
+    // version 1: se agregó la taxonomía de categoría + subcategoría. Se migran
+    // las 6 categorías viejas 1 a 1 a las nuevas (ver migrateCategory) en vez
+    // de abandonar los datos, a diferencia del cambio de v1→v2 de arriba.
+    {
+      name: "control-de-gastos-v2",
+      version: 1,
+      migrate: (persistedState, version) => {
+        const state = persistedState as { transactions?: Transaction[] } & Record<string, unknown>;
+        if (version >= 1 || !state.transactions) return state as unknown as FinanceState;
+        return {
+          ...state,
+          transactions: state.transactions.map((t) => ({
+            ...t,
+            category: migrateCategory(t.category as unknown as string),
+          })),
+        } as unknown as FinanceState;
+      },
+    },
   ),
 );
 
@@ -188,12 +215,16 @@ export function sourceFileSummaries(transactions: Transaction[]): SourceFileSumm
 
 export function totalsByCategory(transactions: Transaction[]): Record<Category, number> {
   const totals: Record<Category, number> = {
-    compras_tarjeta: 0,
+    comida: 0,
+    transporte: 0,
+    salud: 0,
+    servicios_suscripciones: 0,
+    compras: 0,
+    transferencias_personas: 0,
     pago_tarjeta_credito: 0,
-    mercado_pago: 0,
-    transferencias: 0,
-    debitos_automaticos: 0,
     otros: 0,
+    movimientos_internos: 0,
+    transferencias: 0,
   };
   for (const t of transactions) {
     if (t.amount < 0) totals[t.category] += Math.abs(t.amount);

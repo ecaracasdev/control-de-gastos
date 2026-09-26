@@ -11,7 +11,6 @@ test("importar un extracto, revisarlo, guardarlo y ver el dashboard actualizado"
   await page.goto("/");
 
   await page.getByRole("button", { name: "Cargar documento" }).click();
-  await page.getByRole("button", { name: "Elegir archivo" }).click();
 
   const buffer = await buildFakeStatementXlsx();
   await page.locator('input[type="file"]').setInputFiles({
@@ -34,6 +33,12 @@ test("importar un extracto, revisarlo, guardarlo y ver el dashboard actualizado"
   await expect(page.getByText("$ 62.500,00").first()).toBeVisible();
   await expect(page.getByText("-$ 10.000,00")).toBeVisible();
   await expect(page.getByText("Distribución de gastos por categoría")).toBeVisible();
+
+  // Taxonomía nueva (categorías/subcategorías): Farmacia Sepia -> Salud,
+  // Netflix -> Servicios y suscripciones, Supermercado Coto -> Comida.
+  await expect(page.getByText("Salud").first()).toBeVisible();
+  await expect(page.getByText("Servicios y suscripciones").first()).toBeVisible();
+  await expect(page.getByText("Comida").first()).toBeVisible();
 
   expect(errors, `Errores de consola: ${errors.join("\n")}`).toEqual([]);
 });

@@ -53,7 +53,7 @@ export function parseGeneric(
 
       const currency: "ARS" | "USD" = /u\$s|us\$|usd/i.test(description) ? "USD" : "ARS";
       const installment = detectInstallment(description);
-      const category = categorize(description);
+      const { category, subcategory } = categorize(description, bank);
 
       drafts.push({
         date: current.iso,
@@ -61,6 +61,7 @@ export function parseGeneric(
         amount,
         currency,
         category,
+        subcategory,
         bank,
         installment,
         sourceFile,

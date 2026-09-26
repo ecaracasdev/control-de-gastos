@@ -1,14 +1,35 @@
 export type Category =
-  | "compras_tarjeta"
+  | "comida"
+  | "transporte"
+  | "salud"
+  | "servicios_suscripciones"
+  | "compras"
+  | "transferencias_personas"
   | "pago_tarjeta_credito"
-  | "mercado_pago"
-  | "transferencias"
-  | "debitos_automaticos"
-  | "otros";
+  | "otros"
+  | "movimientos_internos"
+  | "transferencias";
 
-export type Bank = "santander" | "nacion" | "manual";
+export type Bank = "santander" | "nacion" | "manual" | "mercadopago";
 
 export type Currency = "ARS" | "USD";
+
+export type Subcategory =
+  | "delivery"
+  | "restaurantes_qr"
+  | "supermercado"
+  | "peajes"
+  | "combustible"
+  | "apps_transporte"
+  | "farmacia"
+  | "obra_social"
+  | "medicos"
+  | "streaming"
+  | "software"
+  | "servicios_hogar"
+  | "seguros"
+  | "impuestos"
+  | "rendimientos_mp";
 
 export interface MercadoPagoDetailItem {
   id: string;
@@ -25,6 +46,7 @@ export interface Transaction {
   amount: number;
   currency: Currency;
   category: Category;
+  subcategory?: Subcategory;
   bank: Bank;
   installment?: { current: number; total: number };
   mpDetails?: MercadoPagoDetailItem[];
@@ -42,15 +64,57 @@ export interface CategoryMeta {
   shortLabel: string;
   description: string;
   colorVar: string;
+  subcategories: Subcategory[];
 }
 
 export const CATEGORY_META: Record<Category, CategoryMeta> = {
-  compras_tarjeta: {
-    key: "compras_tarjeta",
-    label: "Compras con tarjeta",
+  comida: {
+    key: "comida",
+    label: "Comida",
+    shortLabel: "Comida",
+    description: "Delivery, supermercado y restaurantes o pagos con QR en el momento",
+    colorVar: "var(--series-comida)",
+    subcategories: ["delivery", "restaurantes_qr", "supermercado"],
+  },
+  transporte: {
+    key: "transporte",
+    label: "Transporte",
+    shortLabel: "Transporte",
+    description: "Peajes, combustible y apps de transporte",
+    colorVar: "var(--series-transporte)",
+    subcategories: ["peajes", "combustible", "apps_transporte"],
+  },
+  salud: {
+    key: "salud",
+    label: "Salud",
+    shortLabel: "Salud",
+    description: "Farmacia, obra social o prepaga y médicos",
+    colorVar: "var(--series-salud)",
+    subcategories: ["farmacia", "obra_social", "medicos"],
+  },
+  servicios_suscripciones: {
+    key: "servicios_suscripciones",
+    label: "Servicios y suscripciones",
+    shortLabel: "Servicios",
+    description: "Streaming, software, servicios del hogar y seguros que se cobran solos",
+    colorVar: "var(--series-servicios-suscripciones)",
+    subcategories: ["streaming", "software", "servicios_hogar", "seguros"],
+  },
+  compras: {
+    key: "compras",
+    label: "Compras",
     shortLabel: "Compras",
     description: "Consumos del día a día con tarjeta de débito o crédito en comercios",
-    colorVar: "var(--series-compras-tarjeta)",
+    colorVar: "var(--series-compras)",
+    subcategories: [],
+  },
+  transferencias_personas: {
+    key: "transferencias_personas",
+    label: "Transferencias a personas",
+    shortLabel: "A personas",
+    description: "Plata enviada o recibida de otras personas (salidas grupales, juntadas), no a comercios",
+    colorVar: "var(--series-transferencias-personas)",
+    subcategories: [],
   },
   pago_tarjeta_credito: {
     key: "pago_tarjeta_credito",
@@ -58,45 +122,69 @@ export const CATEGORY_META: Record<Category, CategoryMeta> = {
     shortLabel: "Pago tarjeta",
     description: "El pago del resumen de tu tarjeta de crédito (ya gastado en ciclos anteriores)",
     colorVar: "var(--series-pago-tarjeta-credito)",
-  },
-  mercado_pago: {
-    key: "mercado_pago",
-    label: "Mercado Pago",
-    shortLabel: "Mercado Pago",
-    description: "Plata que enviaste a tu propia cuenta de Mercado Pago",
-    colorVar: "var(--series-mercado-pago)",
-  },
-  transferencias: {
-    key: "transferencias",
-    label: "Transferencias",
-    shortLabel: "Transferencias",
-    description: "Transferencias enviadas o recibidas de otras personas o cuentas",
-    colorVar: "var(--series-transferencias)",
-  },
-  debitos_automaticos: {
-    key: "debitos_automaticos",
-    label: "Débitos automáticos",
-    shortLabel: "Automáticos",
-    description: "Servicios, expensas, seguros y suscripciones que se cobran solos",
-    colorVar: "var(--series-debitos-automaticos)",
+    subcategories: [],
   },
   otros: {
     key: "otros",
     label: "Otros",
     shortLabel: "Otros",
-    description: "Impuestos, intereses, extracciones y movimientos que no encajan en el resto",
+    description: "Impuestos, rendimientos de Mercado Pago y movimientos que no encajan en el resto",
     colorVar: "var(--series-otros)",
+    subcategories: ["impuestos", "rendimientos_mp"],
+  },
+  movimientos_internos: {
+    key: "movimientos_internos",
+    label: "Movimientos internos",
+    shortLabel: "Mov. internos",
+    description: "Plata moviéndose entre tus propias cuentas (banco y Mercado Pago), no es consumo",
+    colorVar: "var(--series-movimientos-internos)",
+    subcategories: [],
+  },
+  transferencias: {
+    key: "transferencias",
+    label: "Transferencias",
+    shortLabel: "Transferencias",
+    description: "Transferencias bancarias enviadas o recibidas de otras personas o cuentas",
+    colorVar: "var(--series-transferencias)",
+    subcategories: [],
   },
 };
 
 export const CATEGORY_ORDER: Category[] = [
-  "compras_tarjeta",
+  "compras",
+  "comida",
+  "transporte",
+  "salud",
+  "servicios_suscripciones",
   "pago_tarjeta_credito",
-  "mercado_pago",
-  "transferencias",
-  "debitos_automaticos",
+  "transferencias_personas",
   "otros",
+  "movimientos_internos",
+  "transferencias",
 ];
+
+export interface SubcategoryMeta {
+  key: Subcategory;
+  label: string;
+}
+
+export const SUBCATEGORY_META: Record<Subcategory, SubcategoryMeta> = {
+  delivery: { key: "delivery", label: "Delivery" },
+  restaurantes_qr: { key: "restaurantes_qr", label: "Restaurantes / en el momento" },
+  supermercado: { key: "supermercado", label: "Supermercado" },
+  peajes: { key: "peajes", label: "Peajes" },
+  combustible: { key: "combustible", label: "Combustible" },
+  apps_transporte: { key: "apps_transporte", label: "Apps de transporte" },
+  farmacia: { key: "farmacia", label: "Farmacia" },
+  obra_social: { key: "obra_social", label: "Obra social / prepaga" },
+  medicos: { key: "medicos", label: "Médicos" },
+  streaming: { key: "streaming", label: "Streaming" },
+  software: { key: "software", label: "Software" },
+  servicios_hogar: { key: "servicios_hogar", label: "Servicios del hogar" },
+  seguros: { key: "seguros", label: "Seguros" },
+  impuestos: { key: "impuestos", label: "Impuestos" },
+  rendimientos_mp: { key: "rendimientos_mp", label: "Rendimientos de Mercado Pago" },
+};
 
 export interface IncomeEntry {
   id: string;

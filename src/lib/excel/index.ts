@@ -99,7 +99,7 @@ export async function parseStatementXlsx(file: File, bank: Bank): Promise<ExcelP
     }
     if (!hasAmount) continue;
 
-    const category = categorize(description);
+    const { category, subcategory } = categorize(description, bank);
     const saldoRaw = saldoCol ? row.cells[saldoCol] : undefined;
     const balanceAfter = saldoRaw !== undefined ? Number(saldoRaw) : undefined;
 
@@ -109,6 +109,7 @@ export async function parseStatementXlsx(file: File, bank: Bank): Promise<ExcelP
       amount,
       currency: "ARS",
       category,
+      subcategory,
       bank,
       installment: detectInstallment(description),
       sourceFile: file.name,

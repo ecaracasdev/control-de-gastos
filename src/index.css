@@ -14,12 +14,16 @@
 
   --accent: #2a78d6;
 
-  --series-compras-tarjeta: #2a78d6;
+  --series-compras: #2a78d6;
   --series-pago-tarjeta-credito: #eb6834;
-  --series-mercado-pago: #1baf7a;
-  --series-transferencias: #eda100;
-  --series-debitos-automaticos: #e87ba4;
+  --series-comida: #1baf7a;
+  --series-transporte: #eda100;
+  --series-servicios-suscripciones: #e87ba4;
+  --series-salud: #008300;
   --series-otros: #4a3aa7;
+  --series-transferencias-personas: #e34948;
+  --series-movimientos-internos: #78766f;
+  --series-transferencias: #a8a69c;
 
   --status-good: #0ca30c;
   --status-warning: #fab219;
@@ -39,12 +43,16 @@
 
     --accent: #3987e5;
 
-    --series-compras-tarjeta: #3987e5;
+    --series-compras: #3987e5;
     --series-pago-tarjeta-credito: #d95926;
-    --series-mercado-pago: #199e70;
-    --series-transferencias: #c98500;
-    --series-debitos-automaticos: #d55181;
+    --series-comida: #199e70;
+    --series-transporte: #c98500;
+    --series-servicios-suscripciones: #d55181;
+    --series-salud: #008300;
     --series-otros: #9085e9;
+    --series-transferencias-personas: #e66767;
+    --series-movimientos-internos: #9a988e;
+    --series-transferencias: #6f6e67;
   }
 }
 

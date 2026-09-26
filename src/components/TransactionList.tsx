@@ -159,7 +159,7 @@ export function TransactionList() {
           <ul>
             {filtered.map((t) => {
               const meta = CATEGORY_META[t.category];
-              const isMpTopUp = t.category === "mercado_pago" && t.amount < 0;
+              const isMpTopUp = t.category === "movimientos_internos" && t.amount < 0;
               const isOpen = expanded === t.id;
               return (
                 <li key={t.id} className="border-b last:border-0" style={{ borderColor: "var(--border)" }}>
