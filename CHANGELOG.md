@@ -10,6 +10,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 - Al hacer clic en una categoría del gráfico de torta, el detalle ahora muestra también el desglose por subcategoría (para las categorías que tienen: Comida, Transporte, Salud, Servicios y suscripciones, Otros).
 - La app ahora es instalable como PWA: se puede agregar a la pantalla de inicio en Android/iOS, funciona offline (service worker con precache, incluye el worker de PDF) y avisa cuando hay una versión nueva para actualizar.
 - Exportar/restaurar un backup completo de todos los datos (movimientos, ingresos, saldo) en un archivo JSON, desde "Movimientos" → "Archivos importados".
+- Deploy automático a GitHub Pages en cada cambio a `main`.
 
 ### Changed
 - Los movimientos ya guardados se migran automáticamente a la taxonomía nueva (no se pierde nada de lo cargado antes).
