@@ -5,6 +5,7 @@ import { Card } from "./ui/Card";
 import { Button } from "./ui/Button";
 import { parseStatementPdf } from "../lib/pdf";
 import { parseStatementXlsx } from "../lib/excel";
+import { CreditCardUploadSection } from "./CreditCardUploadSection";
 import type { Bank, ParsedTransactionDraft } from "../types";
 
 const BANKS: { key: Bank; label: string }[] = [
@@ -171,6 +172,8 @@ export function UploadPanel({
           </p>
         </Card>
       )}
+
+      <CreditCardUploadSection />
     </div>
   );
 }

@@ -1,6 +1,16 @@
 import { Modal } from "./ui/Modal";
-import { CATEGORY_META, SUBCATEGORY_META, type Category, type Subcategory, type Transaction } from "../types";
+import { CATEGORY_META, SUBCATEGORY_META, type Category, type Currency, type Subcategory } from "../types";
 import { formatCurrency, formatDate, formatPercent } from "../lib/format";
+
+export interface CategoryDetailItem {
+  id: string;
+  date: string;
+  description: string;
+  amount: number;
+  currency: Currency;
+  subcategory?: Subcategory;
+  installment?: { current: number; total: number };
+}
 
 interface SubcategoryBreakdown {
   key: Subcategory | "sin_subcategoria";
@@ -10,19 +20,23 @@ interface SubcategoryBreakdown {
 
 export function CategoryDetailModal({
   category,
-  transactions,
+  items,
   onClose,
 }: {
   category: Category;
-  transactions: Transaction[];
+  items: CategoryDetailItem[];
   onClose: () => void;
 }) {
   const meta = CATEGORY_META[category];
-  const total = transactions.reduce((sum, t) => sum + Math.abs(t.amount), 0);
-  const sorted = [...transactions].sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
+  // Separado por moneda: sumar pesos y dólares en un solo total no tiene
+  // sentido (no son la misma unidad), así que se muestran ambos subtotales.
+  const totalArs = items.filter((t) => t.currency === "ARS").reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  const totalUsd = items.filter((t) => t.currency === "USD").reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  const total = totalArs + totalUsd;
+  const sorted = [...items].sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
 
   const bySubcategory = new Map<string, number>();
-  for (const t of transactions) {
+  for (const t of items) {
     const key = t.subcategory ?? "sin_subcategoria";
     bySubcategory.set(key, (bySubcategory.get(key) ?? 0) + Math.abs(t.amount));
   }
@@ -46,7 +60,10 @@ export function CategoryDetailModal({
           <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: meta.colorVar }} />
           <span>{meta.label}</span>
           <span style={{ color: "var(--text-muted)" }} className="font-normal">
-            · {formatCurrency(total)} · {transactions.length} movimiento{transactions.length === 1 ? "" : "s"}
+            · {totalArs > 0 && formatCurrency(totalArs)}
+            {totalArs > 0 && totalUsd > 0 && " + "}
+            {totalUsd > 0 && formatCurrency(totalUsd, "USD")} · {items.length} movimiento
+            {items.length === 1 ? "" : "s"}
           </span>
         </div>
       }

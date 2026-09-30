@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Category, IncomeEntry, MercadoPagoDetailItem, Transaction } from "../types";
+import type { CreditCardStatement } from "../lib/creditcard";
 
 function makeId(): string {
   return crypto.randomUUID();
@@ -32,6 +33,7 @@ export interface BackupData {
   incomeEntries: IncomeEntry[];
   openingBalance: number | null;
   bankBalanceSnapshot: BankBalanceSnapshot | null;
+  creditCardStatements: CreditCardStatement[];
 }
 
 interface FinanceState {
@@ -56,6 +58,11 @@ interface FinanceState {
 
   upsertIncome: (entry: Omit<IncomeEntry, "id"> & { id?: string }) => void;
   removeIncome: (id: string) => void;
+
+  creditCardStatements: CreditCardStatement[];
+  /** Intenta vincular el resumen con el movimiento "pago de tarjeta" que coincida en monto */
+  addCreditCardStatement: (statement: CreditCardStatement) => { linked: boolean };
+  deleteCreditCardStatement: (id: string) => void;
 
   clearAll: () => void;
   exportBackup: () => BackupData;
@@ -176,8 +183,36 @@ export const useFinanceStore = create<FinanceState>()(
         set({ incomeEntries: get().incomeEntries.filter((e) => e.id !== id) });
       },
 
+      creditCardStatements: [],
+
+      addCreditCardStatement: (statement) => {
+        const { transactions, creditCardStatements } = get();
+        const alreadyLinked = new Set(creditCardStatements.map((s) => s.linkedTransactionId).filter(Boolean));
+        const candidates = transactions.filter(
+          (t) =>
+            t.category === "pago_tarjeta_credito" &&
+            !alreadyLinked.has(t.id) &&
+            statement.paymentAmount !== undefined &&
+            Math.abs(t.amount - statement.paymentAmount) < 0.01,
+        );
+
+        const linkedTransactionId = candidates.length === 1 ? candidates[0].id : undefined;
+        set({ creditCardStatements: [...creditCardStatements, { ...statement, linkedTransactionId }] });
+        return { linked: !!linkedTransactionId };
+      },
+
+      deleteCreditCardStatement: (id) => {
+        set({ creditCardStatements: get().creditCardStatements.filter((s) => s.id !== id) });
+      },
+
       clearAll: () =>
-        set({ transactions: [], incomeEntries: [], openingBalance: null, bankBalanceSnapshot: null }),
+        set({
+          transactions: [],
+          incomeEntries: [],
+          openingBalance: null,
+          bankBalanceSnapshot: null,
+          creditCardStatements: [],
+        }),
 
       exportBackup: () => {
         const state = get();
@@ -188,6 +223,7 @@ export const useFinanceStore = create<FinanceState>()(
           incomeEntries: state.incomeEntries,
           openingBalance: state.openingBalance,
           bankBalanceSnapshot: state.bankBalanceSnapshot,
+          creditCardStatements: state.creditCardStatements,
         };
       },
 
@@ -197,6 +233,7 @@ export const useFinanceStore = create<FinanceState>()(
           incomeEntries: data.incomeEntries,
           openingBalance: data.openingBalance,
           bankBalanceSnapshot: data.bankBalanceSnapshot,
+          creditCardStatements: data.creditCardStatements ?? [],
         }),
     }),
     // version 1: se agregó la taxonomía de categoría + subcategoría. Se migran

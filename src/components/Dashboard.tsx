@@ -5,19 +5,42 @@ import { SummaryCards } from "./SummaryCards";
 import { BalanceCheck } from "./BalanceCheck";
 import { RealBalanceCard } from "./RealBalanceCard";
 import { CategoryDonutChart } from "./CategoryDonutChart";
-import { CategoryDetailModal } from "./CategoryDetailModal";
+import { CategoryDetailModal, type CategoryDetailItem } from "./CategoryDetailModal";
 import { MonthlyTrendChart } from "./MonthlyTrendChart";
 import { MonthFilter } from "./MonthFilter";
 import { Card } from "./ui/Card";
 import { EmptyState } from "./ui/EmptyState";
 import { UploadCloud } from "lucide-react";
 import { Button } from "./ui/Button";
-import type { Category } from "../types";
+import type { Category, Transaction } from "../types";
+import type { CreditCardStatement } from "../lib/creditcard";
+
+function getCategoryModalItems(
+  transactions: Transaction[],
+  creditCardStatements: CreditCardStatement[],
+  category: Category,
+): CategoryDetailItem[] {
+  const catTxns = transactions.filter((t) => t.category === category && t.amount < 0);
+  if (category !== "pago_tarjeta_credito") return catTxns;
+
+  // Para "pago de tarjeta de crédito" mostramos el detalle de consumos si lo
+  // cargaste (mucho más útil que ver solo el pago en bloque); si algún pago
+  // todavía no tiene resumen vinculado, esa línea se muestra tal cual para
+  // no esconder nada.
+  const items: CategoryDetailItem[] = [];
+  for (const t of catTxns) {
+    const statement = creditCardStatements.find((s) => s.linkedTransactionId === t.id);
+    if (statement) items.push(...statement.items);
+    else items.push(t);
+  }
+  return items;
+}
 
 export function Dashboard({ onGoToUpload }: { onGoToUpload: () => void }) {
   const transactions = useFinanceStore((s) => s.transactions);
   const incomeEntries = useFinanceStore((s) => s.incomeEntries);
   const bankBalanceSnapshot = useFinanceStore((s) => s.bankBalanceSnapshot);
+  const creditCardStatements = useFinanceStore((s) => s.creditCardStatements);
   const [selectedMonth, setSelectedMonth] = useState<string | "all">("all");
   const [modalCategory, setModalCategory] = useState<Category | null>(null);
 
@@ -158,7 +181,7 @@ export function Dashboard({ onGoToUpload }: { onGoToUpload: () => void }) {
       {modalCategory && (
         <CategoryDetailModal
           category={modalCategory}
-          transactions={netted.filter((t) => t.category === modalCategory && t.amount < 0)}
+          items={getCategoryModalItems(netted, creditCardStatements, modalCategory)}
           onClose={() => setModalCategory(null)}
         />
       )}
