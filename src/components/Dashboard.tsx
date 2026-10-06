@@ -8,8 +8,8 @@ import { CategoryDonutChart } from "./CategoryDonutChart";
 import { CategoryDetailModal, type CategoryDetailItem } from "./CategoryDetailModal";
 import { MonthlyTrendChart } from "./MonthlyTrendChart";
 import { MonthFilter } from "./MonthFilter";
-import { SavingsPlanCard } from "./SavingsPlanCard";
-import { spentArsForPlan } from "../lib/savingsPlan";
+import { BudgetBreakdownCard } from "./BudgetBreakdownCard";
+import { buildBudgetBreakdown } from "../lib/savingsPlan";
 import { Card } from "./ui/Card";
 import { EmptyState } from "./ui/EmptyState";
 import { UploadCloud } from "lucide-react";
@@ -75,6 +75,16 @@ export function Dashboard({ onGoToUpload }: { onGoToUpload: () => void }) {
   // cuando sale de Mercado Pago, y eso ya se categoriza aparte).
   const reconciledIds = useMemo(() => findReconciledInternalTransferIds(transactions), [transactions]);
   const netted = useMemo(() => filtered.filter((t) => !reconciledIds.has(t.id)), [filtered, reconciledIds]);
+  const budgetBreakdown = useMemo(
+    () =>
+      buildBudgetBreakdown({
+        income: manualIncome,
+        rateArsPerUsd: exchangeRateByMonth[selectedMonth === "all" ? "" : selectedMonth] ?? 0,
+        targetUsd: savingsTargetUsd,
+        transactions: netted,
+      }),
+    [manualIncome, exchangeRateByMonth, selectedMonth, savingsTargetUsd, netted],
+  );
   const nettedAll = useMemo(
     () => transactions.filter((t) => !reconciledIds.has(t.id)),
     [transactions, reconciledIds],
@@ -181,10 +191,9 @@ export function Dashboard({ onGoToUpload }: { onGoToUpload: () => void }) {
         balance={balance}
       />
       {selectedMonth !== "all" && (
-        <SavingsPlanCard
+        <BudgetBreakdownCard
           month={selectedMonth}
-          income={manualIncome}
-          spent={spentArsForPlan(netted)}
+          breakdown={budgetBreakdown}
           targetUsd={savingsTargetUsd}
           rateArsPerUsd={exchangeRateByMonth[selectedMonth]}
           onTargetChange={setSavingsTargetUsd}
