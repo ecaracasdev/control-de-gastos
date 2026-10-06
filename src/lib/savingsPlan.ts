@@ -27,9 +27,17 @@ export function computeSavingsPlan(input: {
   };
 }
 
-/** Gasto real en pesos del período: lo que salió de tus cuentas, sin transferencias entre cuentas. */
+/**
+ * Gasto neto en pesos del período, visto como cambio en tus activos: todo lo
+ * que sale de tus cuentas (compras, pagos, transferencias a personas) menos lo
+ * que te devuelven por transferencia. Los movimientos entre tus propias
+ * cuentas que ya se reconciliaron no llegan acá (se filtran antes).
+ */
 export function spentArsForPlan(transactions: Transaction[]): number {
-  return transactions
-    .filter((t) => t.amount < 0 && t.currency === "ARS" && t.category !== "transferencias")
-    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  const arsTx = transactions.filter((t) => t.currency === "ARS");
+  const outflows = arsTx.filter((t) => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  const transfersIn = arsTx
+    .filter((t) => t.amount > 0 && t.category === "transferencias")
+    .reduce((sum, t) => sum + t.amount, 0);
+  return outflows - transfersIn;
 }

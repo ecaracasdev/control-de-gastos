@@ -28,12 +28,20 @@ describe("computeSavingsPlan", () => {
 describe("spentArsForPlan", () => {
   const base = { id: "x", description: "", currency: "ARS" as const, bank: "santander" as const, sourceFile: "f" };
 
-  it("suma solo gastos en pesos, excluyendo transferencias entre cuentas", () => {
+  it("cuenta las transferencias a personas como gasto y resta las que te devuelven", () => {
     const txs: Transaction[] = [
       { ...base, id: "1", date: "2026-09-01", amount: -1000, category: "compras" },
       { ...base, id: "2", date: "2026-09-02", amount: -500, category: "transferencias" },
-      { ...base, id: "3", date: "2026-09-03", amount: 3000, category: "compras" },
+      { ...base, id: "3", date: "2026-09-03", amount: 200, category: "transferencias" },
       { ...base, id: "4", date: "2026-09-04", amount: -20, currency: "USD", category: "compras" },
+    ];
+    expect(spentArsForPlan(txs)).toBe(1300);
+  });
+
+  it("no cuenta ingresos que no son devoluciones (eso lo cubre el ingreso manual)", () => {
+    const txs: Transaction[] = [
+      { ...base, id: "1", date: "2026-09-01", amount: -1000, category: "compras" },
+      { ...base, id: "2", date: "2026-09-03", amount: 3000, category: "compras" },
     ];
     expect(spentArsForPlan(txs)).toBe(1000);
   });
