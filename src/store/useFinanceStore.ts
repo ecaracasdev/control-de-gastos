@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Category, IncomeEntry, MercadoPagoDetailItem, Transaction } from "../types";
 import type { CreditCardStatement } from "../lib/creditcard";
+import { DEFAULT_BUDGET_PCT, type BudgetBucketKey } from "../lib/savingsPlan";
 
 function makeId(): string {
   return crypto.randomUUID();
@@ -64,6 +65,8 @@ interface FinanceState {
   addCreditCardStatement: (statement: CreditCardStatement) => { linked: boolean };
   deleteCreditCardStatement: (id: string) => void;
   savingsTargetUsd: number;
+  budgetPct: Record<BudgetBucketKey, number>;
+  setBudgetPct: (key: BudgetBucketKey, pct: number) => void;
   setSavingsTargetUsd: (usd: number) => void;
   /** Tipo de cambio (pesos por dólar) cargado a mano para cada mes, yyyy-MM */
   exchangeRateByMonth: Record<string, number>;
@@ -93,6 +96,8 @@ export const useFinanceStore = create<FinanceState>()(
       transactions: [],
       incomeEntries: [],
       savingsTargetUsd: 1000,
+      budgetPct: DEFAULT_BUDGET_PCT,
+      setBudgetPct: (key, pct) => set({ budgetPct: { ...get().budgetPct, [key]: pct } }),
       setSavingsTargetUsd: (usd) => set({ savingsTargetUsd: usd }),
       exchangeRateByMonth: {},
       setExchangeRate: (month, rate) => {
@@ -307,6 +312,7 @@ export function totalsByCategory(transactions: Transaction[]): Record<Category, 
     otros: 0,
     movimientos_internos: 0,
     transferencias: 0,
+    gustos_personales: 0,
   };
   for (const t of transactions) {
     if (t.amount < 0) totals[t.category] += Math.abs(t.amount);

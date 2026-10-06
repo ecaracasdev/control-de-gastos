@@ -35,6 +35,7 @@ type FilterKey = Category | "ingreso";
 export function TransactionList() {
   const transactions = useFinanceStore((s) => s.transactions);
   const deleteTransaction = useFinanceStore((s) => s.deleteTransaction);
+  const updateTransaction = useFinanceStore((s) => s.updateTransaction);
   const creditCardStatements = useFinanceStore((s) => s.creditCardStatements);
 
   const [search, setSearch] = useState("");
@@ -222,7 +223,19 @@ export function TransactionList() {
                         {t.amount >= 0 ? (
                           <Badge color="var(--status-good)">Ingreso</Badge>
                         ) : (
-                          <Badge color={meta.colorVar}>{meta.shortLabel}</Badge>
+                          <select
+                            value={t.category}
+                            onChange={(e) => updateTransaction(t.id, { category: e.target.value as Category })}
+                            className="rounded-md border bg-transparent px-1.5 py-0.5 text-xs cursor-pointer"
+                            style={{ borderColor: meta.colorVar, color: meta.colorVar }}
+                            aria-label="Categoría del movimiento"
+                          >
+                            {CATEGORY_ORDER.map((c) => (
+                              <option key={c} value={c} style={{ color: "#000" }}>
+                                {CATEGORY_META[c].shortLabel}
+                              </option>
+                            ))}
+                          </select>
                         )}
                         {isMpTopUp && (
                           <span className="text-xs" style={{ color: "var(--text-muted)" }}>

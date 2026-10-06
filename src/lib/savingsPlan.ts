@@ -1,26 +1,33 @@
 import type { Category, Transaction } from "../types";
 
-export type BudgetBucketKey = "fijos" | "comida" | "transporte" | "tarjeta" | "personas_otros";
+export type BudgetBucketKey = "fijos" | "comida" | "transporte" | "tarjeta" | "personas_otros" | "gustos";
 
-export interface BudgetBucket {
-  key: BudgetBucketKey;
-  label: string;
-  amount: number;
-  pctOfIncome: number;
-}
+export const BUDGET_BUCKET_ORDER: BudgetBucketKey[] = [
+  "fijos",
+  "comida",
+  "transporte",
+  "tarjeta",
+  "personas_otros",
+  "gustos",
+];
 
-export interface BudgetBreakdown {
-  income: number;
-  spent: number;
-  buckets: BudgetBucket[];
-  targetArs: number;
-  /** Lo que sobra después de gastar, en pesos (puede ser negativo) */
-  saved: number;
-  /** Ingreso libre para vos después de gastar y de tu objetivo de ahorro (puede ser negativo) */
-  freeAfterTarget: number;
-  /** Fijos + comida, como porcentaje del ingreso */
-  essentialsPct: number;
-}
+export const BUDGET_BUCKET_LABELS: Record<BudgetBucketKey, string> = {
+  fijos: "Gastos fijos",
+  comida: "Comida",
+  transporte: "Transporte",
+  tarjeta: "Compras y tarjeta",
+  personas_otros: "Personas y otros",
+  gustos: "Gustos personales",
+};
+
+export const DEFAULT_BUDGET_PCT: Record<BudgetBucketKey, number> = {
+  fijos: 30,
+  comida: 15,
+  transporte: 5,
+  tarjeta: 10,
+  personas_otros: 5,
+  gustos: 10,
+};
 
 const BUCKET_OF_CATEGORY: Partial<Record<Category, BudgetBucketKey>> = {
   servicios_suscripciones: "fijos",
@@ -33,66 +40,81 @@ const BUCKET_OF_CATEGORY: Partial<Record<Category, BudgetBucketKey>> = {
   otros: "personas_otros",
   movimientos_internos: "personas_otros",
   transferencias: "personas_otros",
+  gustos_personales: "gustos",
 };
 
-export const BUDGET_BUCKET_LABELS: Record<BudgetBucketKey, string> = {
-  fijos: "Gastos fijos (servicios, suscripciones, salud)",
-  comida: "Comida",
-  transporte: "Transporte",
-  tarjeta: "Compras y tarjeta",
-  personas_otros: "Personas y otros",
-};
+export interface BudgetBucket {
+  key: BudgetBucketKey;
+  label: string;
+  budget: number;
+  spent: number;
+  /** presupuesto − gasto real: positivo = te sobró, negativo = te pasaste */
+  diff: number;
+}
+
+export interface BudgetBreakdown {
+  income: number;
+  spent: number;
+  targetArs: number;
+  /** ingreso − gasto real */
+  saved: number;
+  /** lo que sobra después de cubrir el objetivo de ahorro (puede ser negativo) */
+  freeAfterTarget: number;
+  buckets: BudgetBucket[];
+  /** suma de porcentajes de bloques + ahorro: tiene que dar hasta 100 */
+  planPct: number;
+}
 
 /**
- * Desglose del mes en pesos. Todo lo que sale de tus cuentas va a un bucket;
- * lo que te devuelven por transferencia resta en "Personas y otros". Así la
- * suma de buckets es exactamente el gasto neto del mes.
+ * Presupuesto por bloque: cada bloque tiene un porcentaje del ingreso y se compara
+ * contra el gasto real del mes. La suma de buckets es el gasto neto del mes: lo que
+ * sale de tus cuentas menos lo que te devuelven por transferencia.
  */
 export function buildBudgetBreakdown(input: {
   income: number;
   rateArsPerUsd: number;
   targetUsd: number;
+  budgetPct: Record<BudgetBucketKey, number>;
   transactions: Transaction[];
 }): BudgetBreakdown | null {
   if (!(input.rateArsPerUsd > 0) || !(input.targetUsd >= 0)) return null;
 
-  const amounts: Record<BudgetBucketKey, number> = {
+  const spentBy: Record<BudgetBucketKey, number> = {
     fijos: 0,
     comida: 0,
     transporte: 0,
     tarjeta: 0,
     personas_otros: 0,
+    gustos: 0,
   };
 
   for (const t of input.transactions) {
     if (t.currency !== "ARS") continue;
     const bucket = BUCKET_OF_CATEGORY[t.category];
     if (!bucket) continue;
-    if (t.amount < 0) amounts[bucket] += Math.abs(t.amount);
+    if (t.amount < 0) spentBy[bucket] += Math.abs(t.amount);
     else if (t.category === "transferencias_personas" || t.category === "transferencias") {
-      amounts.personas_otros -= t.amount;
+      spentBy.personas_otros -= t.amount;
     }
   }
 
   const income = input.income;
-  const spent = Object.values(amounts).reduce((sum, v) => sum + v, 0);
   const targetArs = input.targetUsd * input.rateArsPerUsd;
-  const pct = (v: number) => (income > 0 ? v / income : 0);
+  const spent = BUDGET_BUCKET_ORDER.reduce((sum, k) => sum + spentBy[k], 0);
+  const buckets: BudgetBucket[] = BUDGET_BUCKET_ORDER.map((key) => {
+    const budget = (income * input.budgetPct[key]) / 100;
+    return { key, label: BUDGET_BUCKET_LABELS[key], budget, spent: spentBy[key], diff: budget - spentBy[key] };
+  });
 
-  const buckets: BudgetBucket[] = (Object.keys(amounts) as BudgetBucketKey[]).map((key) => ({
-    key,
-    label: BUDGET_BUCKET_LABELS[key],
-    amount: amounts[key],
-    pctOfIncome: pct(amounts[key]),
-  }));
+  const planPct = BUDGET_BUCKET_ORDER.reduce((sum, k) => sum + input.budgetPct[k], 0) + (income > 0 ? (targetArs / income) * 100 : 0);
 
   return {
     income,
     spent,
-    buckets,
     targetArs,
     saved: income - spent,
     freeAfterTarget: income - spent - targetArs,
-    essentialsPct: pct(amounts.fijos + amounts.comida),
+    buckets,
+    planPct,
   };
 }

@@ -45,6 +45,8 @@ export function Dashboard({ onGoToUpload }: { onGoToUpload: () => void }) {
   const creditCardStatements = useFinanceStore((s) => s.creditCardStatements);
   const savingsTargetUsd = useFinanceStore((s) => s.savingsTargetUsd);
   const setSavingsTargetUsd = useFinanceStore((s) => s.setSavingsTargetUsd);
+  const budgetPct = useFinanceStore((s) => s.budgetPct);
+  const setBudgetPct = useFinanceStore((s) => s.setBudgetPct);
   const exchangeRateByMonth = useFinanceStore((s) => s.exchangeRateByMonth);
   const setExchangeRate = useFinanceStore((s) => s.setExchangeRate);
   const [selectedMonth, setSelectedMonth] = useState<string | "all">("all");
@@ -81,9 +83,10 @@ export function Dashboard({ onGoToUpload }: { onGoToUpload: () => void }) {
         income: manualIncome,
         rateArsPerUsd: exchangeRateByMonth[selectedMonth === "all" ? "" : selectedMonth] ?? 0,
         targetUsd: savingsTargetUsd,
+        budgetPct,
         transactions: netted,
       }),
-    [manualIncome, exchangeRateByMonth, selectedMonth, savingsTargetUsd, netted],
+    [manualIncome, exchangeRateByMonth, selectedMonth, savingsTargetUsd, budgetPct, netted],
   );
   const nettedAll = useMemo(
     () => transactions.filter((t) => !reconciledIds.has(t.id)),
@@ -194,6 +197,8 @@ export function Dashboard({ onGoToUpload }: { onGoToUpload: () => void }) {
         <BudgetBreakdownCard
           month={selectedMonth}
           breakdown={budgetBreakdown}
+          budgetPct={budgetPct}
+          onBudgetPctChange={setBudgetPct}
           targetUsd={savingsTargetUsd}
           rateArsPerUsd={exchangeRateByMonth[selectedMonth]}
           onTargetChange={setSavingsTargetUsd}

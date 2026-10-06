@@ -1,6 +1,6 @@
 import { Card } from "./ui/Card";
 import type { BudgetBreakdown, BudgetBucketKey } from "../lib/savingsPlan";
-import { formatCurrency, formatMonthLabel, formatPercent } from "../lib/format";
+import { formatCurrency, formatMonthLabel } from "../lib/format";
 
 const BUCKET_COLOR: Record<BudgetBucketKey, string> = {
   fijos: "var(--series-servicios-suscripciones)",
@@ -8,20 +8,39 @@ const BUCKET_COLOR: Record<BudgetBucketKey, string> = {
   transporte: "var(--series-transporte)",
   tarjeta: "var(--series-compras)",
   personas_otros: "var(--series-otros)",
+  gustos: "var(--series-gustos-personales)",
 };
+
+const SAVINGS_COLOR = "var(--status-good)";
+
+interface Row {
+  key: string;
+  label: string;
+  color: string;
+  budget: number;
+  real: number;
+  /** positivo = te sobró, negativo = te pasaste */
+  diff: number;
+  editableKey?: BudgetBucketKey;
+  pct?: number;
+}
 
 export function BudgetBreakdownCard({
   month,
   breakdown,
+  budgetPct,
   targetUsd,
   rateArsPerUsd,
+  onBudgetPctChange,
   onTargetChange,
   onRateChange,
 }: {
   month: string;
   breakdown: BudgetBreakdown | null;
+  budgetPct: Record<BudgetBucketKey, number>;
   targetUsd: number;
   rateArsPerUsd: number | undefined;
+  onBudgetPctChange: (key: BudgetBucketKey, pct: number) => void;
   onTargetChange: (usd: number) => void;
   onRateChange: (rate: number | null) => void;
 }) {
@@ -29,128 +48,161 @@ export function BudgetBreakdownCard({
     <Card>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-          Tu mes en una mirada · {formatMonthLabel(month)}
+          Presupuesto vs. gasto real · {formatMonthLabel(month)}
         </p>
         <div className="flex gap-2">
-          <label className="text-xs" style={{ color: "var(--text-muted)" }}>
-            Objetivo USD
-            <input
-              type="number"
-              min={0}
-              value={targetUsd}
-              onChange={(e) => onTargetChange(Number(e.target.value) || 0)}
-              className="mt-1 block w-24 rounded-lg border bg-transparent px-2 py-1 text-sm tabular-nums"
-              style={{ borderColor: "var(--border)", color: "var(--text-primary)" }}
-            />
-          </label>
-          <label className="text-xs" style={{ color: "var(--text-muted)" }}>
-            Dólar del mes
-            <input
-              type="number"
-              min={0}
-              placeholder="ej. 1400"
-              value={rateArsPerUsd ?? ""}
-              onChange={(e) => {
-                const v = Number(e.target.value);
-                onRateChange(e.target.value === "" || !(v > 0) ? null : v);
-              }}
-              className="mt-1 block w-28 rounded-lg border bg-transparent px-2 py-1 text-sm tabular-nums"
-              style={{ borderColor: "var(--border)", color: "var(--text-primary)" }}
-            />
-          </label>
+          <NumberField label="Objetivo USD" value={targetUsd} onChange={(v) => onTargetChange(v)} width="w-24" />
+          <NumberField
+            label="Dólar del mes"
+            value={rateArsPerUsd}
+            placeholder="ej. 1400"
+            onChange={(v) => onRateChange(v > 0 ? v : null)}
+            width="w-28"
+          />
         </div>
       </div>
 
       {!breakdown ? (
         <p className="mt-5 text-sm" style={{ color: "var(--text-secondary)" }}>
-          Para ver el desglose necesitás tu ingreso neto del mes (pestaña Ingresos) y el dólar del mes.
+          Para ver el presupuesto necesitás tu ingreso neto del mes (pestaña Ingresos) y el dólar del mes.
         </p>
       ) : (
-        <Breakdown b={breakdown} targetUsd={targetUsd} />
+        <Body b={breakdown} budgetPct={budgetPct} onBudgetPctChange={onBudgetPctChange} />
       )}
     </Card>
   );
 }
 
-function Breakdown({ b, targetUsd }: { b: BudgetBreakdown; targetUsd: number }) {
-  const total = Math.max(b.income, b.spent, 1);
-  const segments = [
-    ...b.buckets.filter((x) => x.amount > 0).map((x) => ({ key: x.key, color: BUCKET_COLOR[x.key], amount: x.amount, label: x.label })),
-    ...(b.saved > 0 ? [{ key: "ahorro", color: "var(--status-good)", amount: b.saved, label: "Lo que te queda" }] : []),
+function Body({
+  b,
+  budgetPct,
+  onBudgetPctChange,
+}: {
+  b: BudgetBreakdown;
+  budgetPct: Record<BudgetBucketKey, number>;
+  onBudgetPctChange: (key: BudgetBucketKey, pct: number) => void;
+}) {
+  const gustos = b.buckets.find((x) => x.key === "gustos")!;
+  const rows: Row[] = [
+    ...b.buckets.map((x) => ({
+      key: x.key,
+      label: x.label,
+      color: BUCKET_COLOR[x.key],
+      budget: x.budget,
+      real: x.spent,
+      diff: x.diff,
+      editableKey: x.key,
+      pct: budgetPct[x.key],
+    })),
+    {
+      key: "ahorro",
+      label: "Ahorro",
+      color: SAVINGS_COLOR,
+      budget: b.targetArs,
+      real: b.saved,
+      diff: b.saved - b.targetArs,
+    },
   ];
-  const incomeMarkerPct = (b.income / total) * 100;
-  const spentOverIncome = b.spent > b.income;
-  const headline = b.income <= 0
-    ? "Cargá tu ingreso neto de este mes para ver cómo se reparte."
-    : spentOverIncome
-      ? `Gastaste ${formatPercent(b.spent / b.income)} de tu ingreso: te pasaste por ${formatCurrency(b.spent - b.income)}.`
-      : `Gastaste ${formatPercent(b.spent / b.income)} de tu ingreso y te quedó ${formatPercent(b.saved / b.income)}.`;
+  const scale = Math.max(1, ...rows.map((r) => Math.max(r.budget, r.real, 0)));
+  const barWidth = (v: number) => `${(Math.max(v, 0) / scale) * 100}%`;
 
   return (
-    <div className="mt-4 space-y-5">
-      <p className="text-sm" style={{ color: "var(--text-primary)" }}>{headline}</p>
-
-      <div>
-        <div className="relative flex h-7 w-full overflow-hidden rounded-lg" style={{ background: "var(--border)" }}>
-          {segments.map((s) => (
-            <div
-              key={s.key}
-              title={`${s.label}: ${formatCurrency(s.amount)}`}
-              style={{ width: `${(s.amount / total) * 100}%`, background: s.color }}
-            />
-          ))}
-          {spentOverIncome && (
-            <div className="absolute inset-y-0 w-0.5" style={{ left: `${incomeMarkerPct}%`, background: "var(--text-primary)" }} />
-          )}
-        </div>
-        <div className="mt-1.5 flex justify-between text-xs tabular-nums" style={{ color: "var(--text-muted)" }}>
-          <span>0</span>
-          <span>Ingreso {formatCurrency(b.income)}</span>
-        </div>
+    <div className="mt-5 space-y-5">
+      <div className="rounded-xl border p-4" style={{ borderColor: "var(--border)" }}>
+        <p className="text-xs" style={{ color: "var(--text-muted)" }}>Tu mesada para gustos personales</p>
+        <p className="mt-1 text-2xl font-semibold tabular-nums" style={{ color: "var(--text-primary)" }}>
+          {formatCurrency(gustos.budget)}
+        </p>
+        <p className="mt-1 text-sm" style={{ color: gustos.diff >= 0 ? "var(--status-good)" : "var(--status-critical)" }}>
+          Gastaste {formatCurrency(gustos.spent)} · {gustos.diff >= 0 ? `te quedan ${formatCurrency(gustos.diff)}` : `te pasaste ${formatCurrency(-gustos.diff)}`}
+        </p>
       </div>
 
-      <ul className="space-y-2.5">
-        {b.buckets.filter((x) => x.amount > 0).map((x) => (
-          <li key={x.key} className="flex items-center justify-between gap-3 text-sm">
-            <span className="flex min-w-0 items-center gap-2" style={{ color: "var(--text-primary)" }}>
-              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: BUCKET_COLOR[x.key] }} />
-              <span className="truncate">{x.label}</span>
-            </span>
-            <span className="flex shrink-0 items-center gap-3 tabular-nums">
-              <span style={{ color: "var(--text-secondary)" }}>{formatCurrency(x.amount)}</span>
-              <span className="w-14 text-right text-xs" style={{ color: "var(--text-muted)" }}>{formatPercent(x.pctOfIncome)}</span>
-            </span>
+      <div className="flex items-center gap-4 text-xs" style={{ color: "var(--text-muted)" }}>
+        <span className="flex items-center gap-1.5"><span className="h-3 w-5 rounded-sm" style={{ background: "var(--text-secondary)" }} /> Presupuesto</span>
+        <span className="flex items-center gap-1.5"><span className="h-3 w-5 rounded-sm opacity-40" style={{ background: "var(--text-secondary)" }} /> Gasto real</span>
+      </div>
+
+      <ul className="space-y-4">
+        {rows.map((r) => (
+          <li key={r.key} className="space-y-1.5">
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <span className="flex min-w-0 items-center gap-2" style={{ color: "var(--text-primary)" }}>
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: r.color }} />
+                <span className="truncate">{r.label}</span>
+              </span>
+              <span
+                className="shrink-0 text-xs font-medium tabular-nums"
+                style={{ color: r.diff >= 0 ? "var(--status-good)" : "var(--status-critical)" }}
+              >
+                {r.diff >= 0 ? `te sobró ${formatCurrency(r.diff)}` : `te pasaste ${formatCurrency(-r.diff)}`}
+              </span>
+            </div>
+            <div className="space-y-1">
+              <Bar width={barWidth(r.budget)} color={r.color} opacity={1} label={formatCurrency(r.budget)} />
+              <Bar width={barWidth(r.real)} color={r.color} opacity={0.4} label={formatCurrency(r.real)} />
+            </div>
+            {r.editableKey && (
+              <div className="flex items-center gap-2 text-xs" style={{ color: "var(--text-muted)" }}>
+                <span>presupuesto</span>
+                <input
+                  type="number"
+                  min={0}
+                  value={r.pct ?? 0}
+                  onChange={(e) => onBudgetPctChange(r.editableKey!, Number(e.target.value) || 0)}
+                  className="w-16 rounded-md border bg-transparent px-1.5 py-0.5 tabular-nums"
+                  style={{ borderColor: "var(--border)", color: "var(--text-primary)" }}
+                />
+                <span>% del ingreso</span>
+              </div>
+            )}
           </li>
         ))}
-        <li className="flex items-center justify-between gap-3 border-t pt-2.5 text-sm font-medium" style={{ borderColor: "var(--border)" }}>
-          <span style={{ color: "var(--text-primary)" }}>{b.saved >= 0 ? "Te queda" : "Te pasaste"}</span>
-          <span className="tabular-nums" style={{ color: b.saved >= 0 ? "var(--status-good)" : "var(--status-critical)" }}>
-            {formatCurrency(b.saved)}
-          </span>
-        </li>
       </ul>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
-          <p className="text-xs" style={{ color: "var(--text-muted)" }}>Fijos + comida</p>
-          <p className="mt-1 text-lg font-semibold tabular-nums" style={{ color: "var(--text-primary)" }}>
-            {formatPercent(b.essentialsPct)} de tu ingreso
-          </p>
-        </div>
-        <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
-          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-            {b.freeAfterTarget >= 0
-              ? `Libre para vos sin tocar ahorros (y llegar a USD ${targetUsd})`
-              : `Para llegar a USD ${targetUsd} tenés que gastar ${formatCurrency(-b.freeAfterTarget)} menos`}
-          </p>
-          <p
-            className="mt-1 text-lg font-semibold tabular-nums"
-            style={{ color: b.freeAfterTarget >= 0 ? "var(--status-good)" : "var(--status-critical)" }}
-          >
-            {formatCurrency(b.freeAfterTarget >= 0 ? b.freeAfterTarget : -b.freeAfterTarget)}
-          </p>
-        </div>
-      </div>
+      <p className="text-xs" style={{ color: b.planPct > 100 ? "var(--status-critical)" : "var(--text-muted)" }}>
+        Tu plan suma {b.planPct.toFixed(1)}% del ingreso (bloques + ahorro){b.planPct > 100 ? ". Pasate de 100%: bajá algún porcentaje." : "."}
+      </p>
     </div>
+  );
+}
+
+function Bar({ width, color, opacity, label }: { width: string; color: string; opacity: number; label: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <div className="h-3 flex-1 overflow-hidden rounded-sm" style={{ background: "var(--border)" }}>
+        <div className="h-full rounded-sm" style={{ width, background: color, opacity }} />
+      </div>
+      <span className="w-28 shrink-0 text-right text-xs tabular-nums" style={{ color: "var(--text-muted)" }}>{label}</span>
+    </div>
+  );
+}
+
+function NumberField({
+  label,
+  value,
+  placeholder,
+  onChange,
+  width,
+}: {
+  label: string;
+  value: number | undefined;
+  placeholder?: string;
+  onChange: (v: number) => void;
+  width: string;
+}) {
+  return (
+    <label className="text-xs" style={{ color: "var(--text-muted)" }}>
+      {label}
+      <input
+        type="number"
+        min={0}
+        placeholder={placeholder}
+        value={value ?? ""}
+        onChange={(e) => onChange(Number(e.target.value) || 0)}
+        className={`mt-1 block ${width} rounded-lg border bg-transparent px-2 py-1 text-sm tabular-nums`}
+        style={{ borderColor: "var(--border)", color: "var(--text-primary)" }}
+      />
+    </label>
   );
 }
