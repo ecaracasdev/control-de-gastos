@@ -8,6 +8,8 @@ import { CategoryDonutChart } from "./CategoryDonutChart";
 import { CategoryDetailModal, type CategoryDetailItem } from "./CategoryDetailModal";
 import { MonthlyTrendChart } from "./MonthlyTrendChart";
 import { MonthFilter } from "./MonthFilter";
+import { SavingsPlanCard } from "./SavingsPlanCard";
+import { spentArsForPlan } from "../lib/savingsPlan";
 import { Card } from "./ui/Card";
 import { EmptyState } from "./ui/EmptyState";
 import { UploadCloud } from "lucide-react";
@@ -41,6 +43,10 @@ export function Dashboard({ onGoToUpload }: { onGoToUpload: () => void }) {
   const incomeEntries = useFinanceStore((s) => s.incomeEntries);
   const bankBalanceSnapshot = useFinanceStore((s) => s.bankBalanceSnapshot);
   const creditCardStatements = useFinanceStore((s) => s.creditCardStatements);
+  const savingsTargetUsd = useFinanceStore((s) => s.savingsTargetUsd);
+  const setSavingsTargetUsd = useFinanceStore((s) => s.setSavingsTargetUsd);
+  const exchangeRateByMonth = useFinanceStore((s) => s.exchangeRateByMonth);
+  const setExchangeRate = useFinanceStore((s) => s.setExchangeRate);
   const [selectedMonth, setSelectedMonth] = useState<string | "all">("all");
   const [modalCategory, setModalCategory] = useState<Category | null>(null);
 
@@ -174,6 +180,17 @@ export function Dashboard({ onGoToUpload }: { onGoToUpload: () => void }) {
         transfersNet={transfersNet}
         balance={balance}
       />
+      {selectedMonth !== "all" && (
+        <SavingsPlanCard
+          month={selectedMonth}
+          income={manualIncome}
+          spent={spentArsForPlan(netted)}
+          targetUsd={savingsTargetUsd}
+          rateArsPerUsd={exchangeRateByMonth[selectedMonth]}
+          onTargetChange={setSavingsTargetUsd}
+          onRateChange={(rate) => setExchangeRate(selectedMonth, rate)}
+        />
+      )}
       <BalanceCheck balance={bankBalance} earliestDate={earliestDate} />
       <CategoryDonutChart totals={totals} onSelectCategory={setModalCategory} />
       <MonthlyTrendChart transactions={nettedAll} />

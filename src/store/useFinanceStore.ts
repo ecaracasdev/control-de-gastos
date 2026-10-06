@@ -63,6 +63,11 @@ interface FinanceState {
   /** Intenta vincular el resumen con el movimiento "pago de tarjeta" que coincida en monto */
   addCreditCardStatement: (statement: CreditCardStatement) => { linked: boolean };
   deleteCreditCardStatement: (id: string) => void;
+  savingsTargetUsd: number;
+  setSavingsTargetUsd: (usd: number) => void;
+  /** Tipo de cambio (pesos por dólar) cargado a mano para cada mes, yyyy-MM */
+  exchangeRateByMonth: Record<string, number>;
+  setExchangeRate: (month: string, rate: number | null) => void;
 
   clearAll: () => void;
   exportBackup: () => BackupData;
@@ -87,6 +92,15 @@ export const useFinanceStore = create<FinanceState>()(
     (set, get) => ({
       transactions: [],
       incomeEntries: [],
+      savingsTargetUsd: 1000,
+      setSavingsTargetUsd: (usd) => set({ savingsTargetUsd: usd }),
+      exchangeRateByMonth: {},
+      setExchangeRate: (month, rate) => {
+        const next = { ...get().exchangeRateByMonth };
+        if (rate === null) delete next[month];
+        else next[month] = rate;
+        set({ exchangeRateByMonth: next });
+      },
       openingBalance: null,
       setOpeningBalance: (amount) => set({ openingBalance: amount }),
       bankBalanceSnapshot: null,
