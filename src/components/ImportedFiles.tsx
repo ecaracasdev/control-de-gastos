@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
-import { ChevronDown, ChevronUp, Download, FileSpreadsheet, Trash2, Upload } from "lucide-react";
+import { ChevronDown, ChevronUp, CreditCard, Download, FileSpreadsheet, Trash2, Upload } from "lucide-react";
 import { Card } from "./ui/Card";
-import { formatDate } from "../lib/format";
+import { formatCurrency, formatDate } from "../lib/format";
 import { sourceFileSummaries, useFinanceStore, type BackupData } from "../store/useFinanceStore";
 
 function isBackupData(value: unknown): value is BackupData {
@@ -22,6 +22,8 @@ export function ImportedFiles() {
   const clearAll = useFinanceStore((s) => s.clearAll);
   const exportBackup = useFinanceStore((s) => s.exportBackup);
   const restoreBackup = useFinanceStore((s) => s.restoreBackup);
+  const creditCardStatements = useFinanceStore((s) => s.creditCardStatements);
+  const deleteCreditCardStatement = useFinanceStore((s) => s.deleteCreditCardStatement);
   const [open, setOpen] = useState(false);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [confirmingAll, setConfirmingAll] = useState(false);
@@ -29,6 +31,7 @@ export function ImportedFiles() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const files = sourceFileSummaries(transactions);
+  const unlinkedStatements = creditCardStatements.filter((s) => !s.linkedTransactionId);
 
   function downloadBackup() {
     const data = exportBackup();
@@ -119,6 +122,32 @@ export function ImportedFiles() {
               </li>
             ))}
           </ul>
+
+          {unlinkedStatements.length > 0 && (
+            <div className="border-t px-4 py-3" style={{ borderColor: "var(--border)" }}>
+              <p className="mb-2 flex items-center gap-1.5 text-xs font-medium" style={{ color: "var(--text-muted)" }}>
+                <CreditCard size={13} /> Resúmenes de tarjeta sin vincular
+              </p>
+              <ul className="space-y-2">
+                {unlinkedStatements.map((s) => (
+                  <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <span style={{ color: "var(--text-secondary)" }}>
+                      {s.cardLabel} · {s.items.length} consumo(s)
+                      {s.paymentAmount !== undefined && ` · pago ${formatCurrency(s.paymentAmount)}`}
+                      {" — no encontramos un movimiento de \"pago de tarjeta\" que coincida en monto"}
+                    </span>
+                    <button
+                      onClick={() => deleteCreditCardStatement(s.id)}
+                      className="flex shrink-0 items-center gap-1 cursor-pointer"
+                      style={{ color: "var(--status-critical)" }}
+                    >
+                      <Trash2 size={12} /> eliminar
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div className="flex items-center justify-end px-4 py-3">
             {confirmingAll ? (

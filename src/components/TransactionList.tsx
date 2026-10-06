@@ -10,6 +10,7 @@ import { formatCurrency, formatDate } from "../lib/format";
 import { monthKey, useFinanceStore } from "../store/useFinanceStore";
 import { findReconciledInternalTransferIds } from "../lib/reconciliation";
 import { MercadoPagoDetail } from "./MercadoPagoDetail";
+import { CreditCardStatementDetail } from "./CreditCardStatementDetail";
 import { ImportedFiles } from "./ImportedFiles";
 
 function exportCsv(rows: { date: string; description: string; category: Category; amount: number }[]) {
@@ -34,6 +35,7 @@ type FilterKey = Category | "ingreso";
 export function TransactionList() {
   const transactions = useFinanceStore((s) => s.transactions);
   const deleteTransaction = useFinanceStore((s) => s.deleteTransaction);
+  const creditCardStatements = useFinanceStore((s) => s.creditCardStatements);
 
   const [search, setSearch] = useState("");
   const [selectedMonth, setSelectedMonth] = useState<string | "all">("all");
@@ -166,15 +168,20 @@ export function TransactionList() {
             {filtered.map((t) => {
               const meta = CATEGORY_META[t.category];
               const isMpTopUp = t.category === "movimientos_internos" && t.amount < 0 && !reconciledIds.has(t.id);
+              const ccStatement =
+                t.category === "pago_tarjeta_credito"
+                  ? creditCardStatements.find((s) => s.linkedTransactionId === t.id)
+                  : undefined;
+              const isExpandable = isMpTopUp || !!ccStatement;
               const isOpen = expanded === t.id;
               return (
                 <li key={t.id} className="border-b last:border-0" style={{ borderColor: "var(--border)" }}>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-3 sm:flex-nowrap">
                     <button
-                      onClick={() => setExpanded(isOpen ? null : isMpTopUp ? t.id : null)}
+                      onClick={() => setExpanded(isOpen ? null : isExpandable ? t.id : null)}
                       className="order-1 shrink-0 cursor-pointer"
-                      style={{ color: isMpTopUp ? "var(--text-secondary)" : "transparent" }}
-                      disabled={!isMpTopUp}
+                      style={{ color: isExpandable ? "var(--text-secondary)" : "transparent" }}
+                      disabled={!isExpandable}
                     >
                       {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                     </button>
@@ -224,11 +231,19 @@ export function TransactionList() {
                               : "sin detalle todavía"}
                           </span>
                         )}
+                        {t.category === "pago_tarjeta_credito" && (
+                          <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+                            {ccStatement
+                              ? `${ccStatement.items.length} consumo(s) detallado(s)`
+                              : "sin detalle todavía"}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
 
                   {isOpen && isMpTopUp && <MercadoPagoDetail transaction={t} />}
+                  {isOpen && ccStatement && <CreditCardStatementDetail statement={ccStatement} />}
                 </li>
               );
             })}
