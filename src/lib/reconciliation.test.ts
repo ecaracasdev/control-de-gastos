@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Transaction } from "../types";
-import { findReconciledInternalTransferIds } from "./reconciliation";
+import type { CreditCardStatement } from "./creditcard";
+import { findReconciledInternalTransferIds, findSupersededCardPaymentIds } from "./reconciliation";
 import { totalsByCategory } from "../store/useFinanceStore";
 
 function tx(partial: Partial<Transaction> & Pick<Transaction, "id" | "date" | "amount" | "category" | "bank">): Transaction {
@@ -72,5 +73,28 @@ describe("findReconciledInternalTransferIds", () => {
 
     expect(totals.movimientos_internos).toBe(0);
     expect(totals.salud).toBe(3000);
+  });
+});
+
+describe("findSupersededCardPaymentIds", () => {
+  function statement(partial: Partial<CreditCardStatement>): CreditCardStatement {
+    return {
+      id: "s1",
+      cardLabel: "Visa terminada en 1234",
+      cardLast4: "1234",
+      items: [],
+      sourceFile: "f.xlsx",
+      ...partial,
+    };
+  }
+
+  it("devuelve el id del pago en bloque vinculado", () => {
+    const ids = findSupersededCardPaymentIds([statement({ linkedTransactionId: "pago-1" })]);
+    expect(ids).toEqual(new Set(["pago-1"]));
+  });
+
+  it("ignora los resúmenes sin vincular", () => {
+    const ids = findSupersededCardPaymentIds([statement({ linkedTransactionId: undefined })]);
+    expect(ids).toEqual(new Set());
   });
 });

@@ -31,18 +31,6 @@ const browser = await chromium.launch();
 const page = await browser.newPage();
 await page.goto(DEV_URL);
 
-async function toBrowserFile(name, b64) {
-  return page.evaluateHandle(
-    ({ name, b64 }) => {
-      const binary = atob(b64);
-      const arr = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
-      return new File([arr], name);
-    },
-    { name, b64 },
-  );
-}
-
 const entries = await readdir(EXAMPLES);
 const allDrafts = [];
 let bankBalanceSnapshot = null;
@@ -127,12 +115,35 @@ for (const entry of entries) {
 
 const transactions = allDrafts.map(({ confidence: _confidence, ...t }) => ({ ...t, id: crypto.randomUUID() }));
 
+// Mismo comportamiento que store.addCreditCardStatement: cada consumo de la
+// tarjeta se promueve a movimiento propio y categorizado, y el pago en bloque
+// que coincide en monto queda vinculado (para excluirlo del gasto después).
 creditCardStatements = creditCardStatements.map((s) => {
   const match = transactions.find(
     (t) => t.category === "pago_tarjeta_credito" && s.paymentAmount !== undefined && Math.abs(t.amount - s.paymentAmount) < 0.01,
   );
   return { ...s, linkedTransactionId: match?.id };
 });
+
+const promoted = await page.evaluate(async (statements) => {
+  const { categorize } = await import("/src/lib/categorize.ts");
+  return statements.flatMap((s) =>
+    s.items.map((item) => ({
+      id: crypto.randomUUID(),
+      date: item.date,
+      description: item.description,
+      amount: item.amount,
+      currency: item.currency,
+      ...categorize(item.description, "manual"),
+      bank: "tarjeta_credito",
+      installment: item.installment,
+      reference: item.reference,
+      sourceFile: s.sourceFile,
+      creditCardStatementId: s.id,
+    })),
+  );
+}, creditCardStatements);
+transactions.push(...promoted);
 
 const backup = {
   version: 1,

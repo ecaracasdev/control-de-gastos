@@ -12,7 +12,7 @@ export function CreditCardUploadSection() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [parsed, setParsed] = useState<CreditCardStatement[] | null>(null);
-  const [saved, setSaved] = useState<{ label: string; linked: boolean }[] | null>(null);
+  const [saved, setSaved] = useState<{ label: string; linked: boolean; added: number; duplicates: number }[] | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleFile(file: File) {
@@ -41,8 +41,8 @@ export function CreditCardUploadSection() {
   function confirm() {
     if (!parsed) return;
     const results = parsed.map((s) => {
-      const { linked } = addCreditCardStatement(s);
-      return { label: s.cardLabel, linked };
+      const { linked, added, duplicates } = addCreditCardStatement(s);
+      return { label: s.cardLabel, linked, added, duplicates };
     });
     setSaved(results);
     setParsed(null);
@@ -65,9 +65,9 @@ export function CreditCardUploadSection() {
       {open && (
         <div className="space-y-3 border-t px-4 py-4" style={{ borderColor: "var(--border)" }}>
           <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-            Subí el Excel de "Últimos consumos" del último resumen de tu tarjeta (el que corresponde al pago que
-            ya aparece en tus movimientos). Vamos a intentar conectarlo automáticamente con ese pago para
-            mostrarte en qué se fue esa plata.
+            Subí el Excel de "Últimos consumos" de tu tarjeta. Cada consumo se carga como un movimiento propio,
+            categorizado igual que cualquier otro (lo podés corregir después en Movimientos). Si encontramos el
+            pago en bloque que ya tenías cargado del banco, lo excluimos del gasto para no contar esa plata dos veces.
           </p>
 
           {!parsed && !saved && (
@@ -147,9 +147,10 @@ export function CreditCardUploadSection() {
                   )}
                   <span style={{ color: "var(--text-primary)" }}>{r.label}</span>
                   <span style={{ color: "var(--text-muted)" }}>
+                    {`— ${r.added} movimiento(s) nuevo(s)${r.duplicates > 0 ? `, ${r.duplicates} ya estaban cargados` : ""}`}
                     {r.linked
-                      ? "— conectado con un pago en tus movimientos"
-                      : "— guardado, pero no encontramos un pago que coincida exactamente"}
+                      ? " · conectado con el pago en bloque de tus movimientos (no se cuenta dos veces)"
+                      : " · no encontramos el pago en bloque: revisá que no se duplique con tus movimientos del banco"}
                   </span>
                 </div>
               ))}

@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 import type { Category, IncomeEntry, MercadoPagoDetailItem, Transaction } from "../types";
 import type { CreditCardStatement } from "../lib/creditcard";
 import { DEFAULT_BUDGET_PCT, type BudgetBucketKey } from "../lib/savingsPlan";
+import { categorize } from "../lib/categorize";
 
 function makeId(): string {
   return crypto.randomUUID();
@@ -62,7 +63,7 @@ interface FinanceState {
 
   creditCardStatements: CreditCardStatement[];
   /** Intenta vincular el resumen con el movimiento "pago de tarjeta" que coincida en monto */
-  addCreditCardStatement: (statement: CreditCardStatement) => { linked: boolean };
+  addCreditCardStatement: (statement: CreditCardStatement) => { linked: boolean; added: number; duplicates: number };
   deleteCreditCardStatement: (id: string) => void;
   savingsTargetUsd: number;
   budgetPct: Record<BudgetBucketKey, number>;
@@ -147,7 +148,10 @@ export const useFinanceStore = create<FinanceState>()(
       },
 
       deleteBySourceFile: (sourceFile) => {
-        set({ transactions: get().transactions.filter((t) => t.sourceFile !== sourceFile) });
+        set({
+          transactions: get().transactions.filter((t) => t.sourceFile !== sourceFile),
+          creditCardStatements: get().creditCardStatements.filter((s) => s.sourceFile !== sourceFile),
+        });
       },
 
       addManualTransaction: (tx) => {
@@ -216,12 +220,41 @@ export const useFinanceStore = create<FinanceState>()(
         );
 
         const linkedTransactionId = candidates.length === 1 ? candidates[0].id : undefined;
-        set({ creditCardStatements: [...creditCardStatements, { ...statement, linkedTransactionId }] });
-        return { linked: !!linkedTransactionId };
+
+        // Cada consumo de la tarjeta pasa a ser un movimiento propio, categorizado
+        // con las mismas reglas que cualquier otra fuente — así una suscripción
+        // cargada en la tarjeta cae en "Servicios y suscripciones" en vez de
+        // perderse adentro de un solo bloque "Pago de tarjeta de crédito".
+        const newTxs: Transaction[] = [];
+        for (const item of statement.items) {
+          const draft: Omit<Transaction, "id"> = {
+            date: item.date,
+            description: item.description,
+            amount: item.amount,
+            currency: item.currency,
+            ...categorize(item.description, "manual"),
+            bank: "tarjeta_credito",
+            installment: item.installment,
+            reference: item.reference,
+            sourceFile: statement.sourceFile,
+            creditCardStatementId: statement.id,
+          };
+          const dup = transactions.some((e) => isDuplicate(draft, e)) || newTxs.some((e) => isDuplicate(draft, e));
+          if (!dup) newTxs.push({ ...draft, id: makeId() });
+        }
+
+        set({
+          transactions: [...transactions, ...newTxs],
+          creditCardStatements: [...creditCardStatements, { ...statement, linkedTransactionId }],
+        });
+        return { linked: !!linkedTransactionId, added: newTxs.length, duplicates: statement.items.length - newTxs.length };
       },
 
       deleteCreditCardStatement: (id) => {
-        set({ creditCardStatements: get().creditCardStatements.filter((s) => s.id !== id) });
+        set({
+          creditCardStatements: get().creditCardStatements.filter((s) => s.id !== id),
+          transactions: get().transactions.filter((t) => t.creditCardStatementId !== id),
+        });
       },
 
       clearAll: () =>

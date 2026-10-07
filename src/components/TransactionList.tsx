@@ -5,12 +5,11 @@ import { Badge } from "./ui/Badge";
 import { Button } from "./ui/Button";
 import { EmptyState } from "./ui/EmptyState";
 import { MonthFilter } from "./MonthFilter";
-import { CATEGORY_META, CATEGORY_ORDER, type Category } from "../types";
+import { CATEGORY_META, CATEGORY_ORDER, SUBCATEGORY_META, type Category, type Subcategory } from "../types";
 import { formatCurrency, formatDate } from "../lib/format";
 import { monthKey, useFinanceStore } from "../store/useFinanceStore";
 import { findReconciledInternalTransferIds } from "../lib/reconciliation";
 import { MercadoPagoDetail } from "./MercadoPagoDetail";
-import { CreditCardStatementDetail } from "./CreditCardStatementDetail";
 import { ImportedFiles } from "./ImportedFiles";
 
 function exportCsv(rows: { date: string; description: string; category: Category; amount: number }[]) {
@@ -179,11 +178,10 @@ export function TransactionList() {
             {filtered.map((t) => {
               const meta = CATEGORY_META[t.category];
               const isMpTopUp = t.category === "movimientos_internos" && t.amount < 0 && !reconciledIds.has(t.id);
-              const ccStatement =
-                t.category === "pago_tarjeta_credito"
-                  ? creditCardStatements.find((s) => s.linkedTransactionId === t.id)
-                  : undefined;
-              const isExpandable = isMpTopUp || !!ccStatement;
+              const hasCardDetail =
+                t.category === "pago_tarjeta_credito" &&
+                creditCardStatements.some((s) => s.linkedTransactionId === t.id);
+              const isExpandable = isMpTopUp;
               const isOpen = expanded === t.id;
               return (
                 <li key={t.id} className="border-b last:border-0" style={{ borderColor: "var(--border)" }}>
@@ -254,19 +252,36 @@ export function TransactionList() {
                               : "sin detalle todavía"}
                           </span>
                         )}
-                        {t.category === "pago_tarjeta_credito" && (
+                        {t.category === "pago_tarjeta_credito" && hasCardDetail && (
                           <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-                            {ccStatement
-                              ? `${ccStatement.items.length} consumo(s) detallado(s)`
-                              : "sin detalle todavía"}
+                            ya contado en el detalle de tu tarjeta
                           </span>
+                        )}
+                        {t.amount < 0 && CATEGORY_META[t.category].subcategories.length > 0 && (
+                          <select
+                            value={t.subcategory ?? ""}
+                            onChange={(e) =>
+                              updateTransaction(t.id, {
+                                subcategory: (e.target.value || undefined) as Subcategory | undefined,
+                              })
+                            }
+                            className="rounded-md border bg-transparent px-1.5 py-0.5 text-xs cursor-pointer"
+                            style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+                            aria-label="Subcategoría del movimiento"
+                          >
+                            <option value="" style={{ color: "#000" }}>Sin subcategoría</option>
+                            {CATEGORY_META[t.category].subcategories.map((sc) => (
+                              <option key={sc} value={sc} style={{ color: "#000" }}>
+                                {SUBCATEGORY_META[sc].label}
+                              </option>
+                            ))}
+                          </select>
                         )}
                       </div>
                     </div>
                   </div>
 
                   {isOpen && isMpTopUp && <MercadoPagoDetail transaction={t} />}
-                  {isOpen && ccStatement && <CreditCardStatementDetail statement={ccStatement} />}
                 </li>
               );
             })}

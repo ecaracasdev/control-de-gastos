@@ -132,9 +132,9 @@ export function ImportedFiles() {
                 {unlinkedStatements.map((s) => (
                   <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 text-xs">
                     <span style={{ color: "var(--text-secondary)" }}>
-                      {s.cardLabel} · {s.items.length} consumo(s)
-                      {s.paymentAmount !== undefined && ` · pago ${formatCurrency(s.paymentAmount)}`}
-                      {" — no encontramos un movimiento de \"pago de tarjeta\" que coincida en monto"}
+                      {s.cardLabel} · {s.items.length} consumo(s) ya cargados como movimientos propios
+                      {s.paymentAmount !== undefined && ` · pago del resumen ${formatCurrency(s.paymentAmount)}`}
+                      {" — no encontramos un \"pago de tarjeta\" que coincida en monto para excluirlo; revisá que no quede contado dos veces"}
                     </span>
                     <button
                       onClick={() => deleteCreditCardStatement(s.id)}

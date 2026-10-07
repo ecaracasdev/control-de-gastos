@@ -15,7 +15,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
 - Desglose del mes en el Panel: cómo se reparte tu ingreso entre gastos fijos, comida, transporte, compras y tarjeta, personas y otros, con lo que te queda, cuánto son fijos + comida como % del ingreso, y cuánto podés gastar libremente sin tocar tu objetivo de ahorro en USD.
 
+- Un selector de subcategoría en Movimientos, además del de categoría.
+
 ### Changed
+- Los consumos de la tarjeta de crédito ya no quedan como detalle anidado debajo del pago en bloque: cada consumo pasa a ser su propio movimiento, categorizado automáticamente (una suscripción cargada en la tarjeta cae en "Servicios y suscripciones", no en un bloque genérico "Pago de tarjeta de crédito"), y editable desde Movimientos como cualquier otro. El pago en bloque del banco se excluye del gasto cuando ya está vinculado, para no contarlo dos veces.
 - Los movimientos ya guardados se migran automáticamente a la taxonomía nueva (no se pierde nada de lo cargado antes).
 - `categorize()` ahora también informa qué tan confiable es la categorización detectada, para que los casos más ambiguos (ej. pagos vía EBANX, un "Pago con QR" genérico) se marquen para revisar en vez de darlos por buenos.
 - El aviso de "anotá a mano en qué se gastó" de una transferencia a Mercado Pago ya no aparece cuando esa transferencia tiene su contraparte real importada (el detalle real ya está disponible en otros movimientos).
