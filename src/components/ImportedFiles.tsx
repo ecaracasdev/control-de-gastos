@@ -46,6 +46,14 @@ export function ImportedFiles() {
 
   async function handleRestoreFile(file: File) {
     setRestoreError(null);
+    if (
+      transactions.length > 0 &&
+      !window.confirm(
+        `Ya tenés ${transactions.length} movimientos cargados. Restaurar este backup los va a REEMPLAZAR por completo (no se suman). ¿Confirmás?`,
+      )
+    ) {
+      return;
+    }
     try {
       const parsed: unknown = JSON.parse(await file.text());
       if (!isBackupData(parsed)) {
