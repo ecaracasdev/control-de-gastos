@@ -13,7 +13,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 - Deploy automático a GitHub Pages en cada cambio a `main`.
 - Se puede cargar el detalle de consumos de la tarjeta de crédito (Excel "Últimos consumos" de Santander): se vincula automáticamente con el pago que ya aparece en los movimientos y muestra el detalle real de cada compra (con cuotas y montos en dólares) en vez de solo el pago en bloque.
 
-- Calculadora "¿Cuánto podés gastar para ahorrar?" en el Panel: con el ingreso neto del mes (pestaña Ingresos), el tipo de cambio que cargues y el objetivo en USD (1000 por defecto), muestra el gasto máximo del mes, cuánto gastaste y si vas bien.
+- Desglose del mes en el Panel: cómo se reparte tu ingreso entre gastos fijos, comida, transporte, compras y tarjeta, personas y otros, con lo que te queda, cuánto son fijos + comida como % del ingreso, y cuánto podés gastar libremente sin tocar tu objetivo de ahorro en USD.
 
 ### Changed
 - Los movimientos ya guardados se migran automáticamente a la taxonomía nueva (no se pierde nada de lo cargado antes).

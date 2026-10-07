@@ -8,7 +8,8 @@ export type Category =
   | "pago_tarjeta_credito"
   | "otros"
   | "movimientos_internos"
-  | "transferencias";
+  | "transferencias"
+  | "gustos_personales";
 
 export type Bank = "santander" | "nacion" | "manual" | "mercadopago";
 
@@ -124,6 +125,14 @@ export const CATEGORY_META: Record<Category, CategoryMeta> = {
     colorVar: "var(--series-pago-tarjeta-credito)",
     subcategories: [],
   },
+  gustos_personales: {
+    key: "gustos_personales",
+    label: "Gustos personales",
+    shortLabel: "Gustos",
+    description: "Hobbies, salidas, asados y cosas que te das sin culpa (lo marcás a mano)",
+    colorVar: "var(--series-gustos-personales)",
+    subcategories: [],
+  },
   otros: {
     key: "otros",
     label: "Otros",
@@ -158,6 +167,7 @@ export const CATEGORY_ORDER: Category[] = [
   "servicios_suscripciones",
   "pago_tarjeta_credito",
   "transferencias_personas",
+  "gustos_personales",
   "otros",
   "movimientos_internos",
   "transferencias",

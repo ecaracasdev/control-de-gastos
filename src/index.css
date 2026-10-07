@@ -24,6 +24,7 @@
   --series-transferencias-personas: #e34948;
   --series-movimientos-internos: #78766f;
   --series-transferencias: #a8a69c;
+  --series-gustos-personales: #7a5af8;
 
   --status-good: #0ca30c;
   --status-warning: #fab219;
@@ -53,6 +54,7 @@
     --series-transferencias-personas: #e66767;
     --series-movimientos-internos: #9a988e;
     --series-transferencias: #6f6e67;
+    --series-gustos-personales: #9b8cff;
   }
 }
 
