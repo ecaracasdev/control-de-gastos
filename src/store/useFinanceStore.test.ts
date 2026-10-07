@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { migrateCategory, useFinanceStore } from "./useFinanceStore";
+import type { CreditCardStatement } from "../lib/creditcard";
 
 describe("migrateCategory", () => {
   it("mapea 1 a 1 las 6 categorías viejas a las nuevas", () => {
@@ -45,5 +46,79 @@ describe("exportBackup / restoreBackup", () => {
     expect(restored.transactions[0].description).toBe("Test");
     expect(restored.incomeEntries).toHaveLength(1);
     expect(restored.openingBalance).toBe(1000);
+  });
+});
+
+describe("addCreditCardStatement", () => {
+  function baseStatement(overrides: Partial<CreditCardStatement> = {}): CreditCardStatement {
+    return {
+      id: "stmt-1",
+      cardLabel: "Visa terminada en 1234",
+      cardLast4: "1234",
+      paymentAmount: -1500,
+      items: [
+        { id: "i1", date: "2026-09-05", description: "Netflix.com", amount: -500, currency: "ARS" as const },
+        { id: "i2", date: "2026-09-10", description: "Super Mercado", amount: -1000, currency: "ARS" as const },
+      ],
+      sourceFile: "tarjeta.xlsx",
+      ...overrides,
+    };
+  }
+
+  it("convierte cada consumo en un movimiento propio y categorizado", () => {
+    const store = useFinanceStore.getState();
+    store.clearAll();
+    const { added, duplicates, linked } = store.addCreditCardStatement(baseStatement());
+
+    expect(added).toBe(2);
+    expect(duplicates).toBe(0);
+    expect(linked).toBe(false);
+
+    const txs = useFinanceStore.getState().transactions;
+    expect(txs).toHaveLength(2);
+    expect(txs.find((t) => t.description === "Netflix.com")?.category).toBe("servicios_suscripciones");
+    expect(txs.every((t) => t.bank === "tarjeta_credito")).toBe(true);
+    expect(txs.every((t) => t.creditCardStatementId === "stmt-1")).toBe(true);
+  });
+
+  it("vincula el pago en bloque cuando el monto coincide, y eso lo excluye de los totales", () => {
+    const store = useFinanceStore.getState();
+    store.clearAll();
+    store.addManualTransaction({
+      date: "2026-09-01",
+      description: "Pago tarjeta de credito",
+      amount: -1500,
+      currency: "ARS",
+      category: "pago_tarjeta_credito",
+      bank: "santander",
+    });
+
+    const { linked } = store.addCreditCardStatement(baseStatement());
+    expect(linked).toBe(true);
+
+    const statements = useFinanceStore.getState().creditCardStatements;
+    expect(statements[0].linkedTransactionId).toBeDefined();
+  });
+
+  it("deleteCreditCardStatement borra también los movimientos que generó", () => {
+    const store = useFinanceStore.getState();
+    store.clearAll();
+    store.addCreditCardStatement(baseStatement());
+    expect(useFinanceStore.getState().transactions).toHaveLength(2);
+
+    store.deleteCreditCardStatement("stmt-1");
+    expect(useFinanceStore.getState().transactions).toHaveLength(0);
+    expect(useFinanceStore.getState().creditCardStatements).toHaveLength(0);
+  });
+
+  it("no duplica movimientos si el mismo resumen se carga dos veces", () => {
+    const store = useFinanceStore.getState();
+    store.clearAll();
+    store.addCreditCardStatement(baseStatement());
+    const second = store.addCreditCardStatement(baseStatement({ id: "stmt-2" }));
+
+    expect(second.added).toBe(0);
+    expect(second.duplicates).toBe(2);
+    expect(useFinanceStore.getState().transactions).toHaveLength(2);
   });
 });

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useFinanceStore, monthKey, totalsByCategory } from "../store/useFinanceStore";
-import { findReconciledInternalTransferIds } from "../lib/reconciliation";
+import { findReconciledInternalTransferIds, findSupersededCardPaymentIds } from "../lib/reconciliation";
 import { SummaryCards } from "./SummaryCards";
 import { BalanceCheck } from "./BalanceCheck";
 import { RealBalanceCard } from "./RealBalanceCard";
@@ -15,27 +15,9 @@ import { EmptyState } from "./ui/EmptyState";
 import { UploadCloud } from "lucide-react";
 import { Button } from "./ui/Button";
 import type { Category, Transaction } from "../types";
-import type { CreditCardStatement } from "../lib/creditcard";
 
-function getCategoryModalItems(
-  transactions: Transaction[],
-  creditCardStatements: CreditCardStatement[],
-  category: Category,
-): CategoryDetailItem[] {
-  const catTxns = transactions.filter((t) => t.category === category && t.amount < 0);
-  if (category !== "pago_tarjeta_credito") return catTxns;
-
-  // Para "pago de tarjeta de crédito" mostramos el detalle de consumos si lo
-  // cargaste (mucho más útil que ver solo el pago en bloque); si algún pago
-  // todavía no tiene resumen vinculado, esa línea se muestra tal cual para
-  // no esconder nada.
-  const items: CategoryDetailItem[] = [];
-  for (const t of catTxns) {
-    const statement = creditCardStatements.find((s) => s.linkedTransactionId === t.id);
-    if (statement) items.push(...statement.items);
-    else items.push(t);
-  }
-  return items;
+function getCategoryModalItems(transactions: Transaction[], category: Category): CategoryDetailItem[] {
+  return transactions.filter((t) => t.category === category && t.amount < 0);
 }
 
 export function Dashboard({ onGoToUpload }: { onGoToUpload: () => void }) {
@@ -76,7 +58,16 @@ export function Dashboard({ onGoToUpload }: { onGoToUpload: () => void }) {
   // realidad no cambió el patrimonio del hogar (se gastó de verdad recién
   // cuando sale de Mercado Pago, y eso ya se categoriza aparte).
   const reconciledIds = useMemo(() => findReconciledInternalTransferIds(transactions), [transactions]);
-  const netted = useMemo(() => filtered.filter((t) => !reconciledIds.has(t.id)), [filtered, reconciledIds]);
+  // El pago en bloque de la tarjeta que ya tiene un resumen vinculado se
+  // excluye del gasto del hogar: sus consumos reales ya están cargados como
+  // movimientos propios (ver store.addCreditCardStatement), contarlo también
+  // sería gastar esa plata dos veces.
+  const supersededCardIds = useMemo(() => findSupersededCardPaymentIds(creditCardStatements), [creditCardStatements]);
+  const excludedIds = useMemo(
+    () => new Set([...reconciledIds, ...supersededCardIds]),
+    [reconciledIds, supersededCardIds],
+  );
+  const netted = useMemo(() => filtered.filter((t) => !excludedIds.has(t.id)), [filtered, excludedIds]);
   const budgetBreakdown = useMemo(
     () =>
       buildBudgetBreakdown({
@@ -89,8 +80,8 @@ export function Dashboard({ onGoToUpload }: { onGoToUpload: () => void }) {
     [manualIncome, exchangeRateByMonth, selectedMonth, savingsTargetUsd, budgetPct, netted],
   );
   const nettedAll = useMemo(
-    () => transactions.filter((t) => !reconciledIds.has(t.id)),
-    [transactions, reconciledIds],
+    () => transactions.filter((t) => !excludedIds.has(t.id)),
+    [transactions, excludedIds],
   );
 
   // Las transferencias (a otras personas, no a Mercado Pago) se tratan aparte:
@@ -135,7 +126,13 @@ export function Dashboard({ onGoToUpload }: { onGoToUpload: () => void }) {
   // bancaria (esa plata ya salió del banco al hacer la transferencia), así
   // que mezclarlo rompe la comparación contra el saldo real que reporta el
   // banco.
-  const bankOnly = useMemo(() => filtered.filter((t) => t.bank !== "mercadopago"), [filtered]);
+  // El detalle de consumos de la tarjeta (bank: "tarjeta_credito") tampoco
+  // toca la cuenta bancaria directamente: es el desglose del pago en bloque,
+  // que ese sí es un movimiento real del banco.
+  const bankOnly = useMemo(
+    () => filtered.filter((t) => t.bank !== "mercadopago" && t.bank !== "tarjeta_credito"),
+    [filtered],
+  );
   const bankIncome = useMemo(
     () =>
       bankOnly
@@ -212,7 +209,7 @@ export function Dashboard({ onGoToUpload }: { onGoToUpload: () => void }) {
       {modalCategory && (
         <CategoryDetailModal
           category={modalCategory}
-          items={getCategoryModalItems(netted, creditCardStatements, modalCategory)}
+          items={getCategoryModalItems(netted, modalCategory)}
           onClose={() => setModalCategory(null)}
         />
       )}

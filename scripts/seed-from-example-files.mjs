@@ -14,9 +14,64 @@
 // Uso: con `npm run dev` corriendo en el puerto 5173, en otra terminal:
 //   node scripts/seed-from-example-files.mjs
 
-import { readFile, writeFile, readdir } from "node:fs/promises";
+import { readFile, writeFile, readdir, access } from "node:fs/promises";
 import path from "node:path";
 import { chromium } from "@playwright/test";
+
+async function exists(p) {
+  try {
+    await access(p);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Parser mínimo de CSV con campos entrecomillados (admite comas y "" escapadas adentro). */
+function parseCsv(text) {
+  const rows = [];
+  let i = 0;
+  const n = text.length;
+  while (i < n) {
+    const row = [];
+    for (;;) {
+      let field = "";
+      if (text[i] === '"') {
+        i++;
+        while (i < n) {
+          if (text[i] === '"') {
+            if (text[i + 1] === '"') {
+              field += '"';
+              i += 2;
+            } else {
+              i++;
+              break;
+            }
+          } else {
+            field += text[i];
+            i++;
+          }
+        }
+      } else {
+        while (i < n && text[i] !== "," && text[i] !== "\n" && text[i] !== "\r") {
+          field += text[i];
+          i++;
+        }
+      }
+      row.push(field);
+      if (text[i] === ",") {
+        i++;
+        continue;
+      }
+      break;
+    }
+    if (text[i] === "\r") i++;
+    if (text[i] === "\n") i++;
+    rows.push(row);
+    if (i >= n) break;
+  }
+  return rows.filter((r) => r.length > 1 || r[0] !== "");
+}
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const EXAMPLES = path.join(ROOT, "example_files");
@@ -30,18 +85,6 @@ async function fileArgFor(absPath) {
 const browser = await chromium.launch();
 const page = await browser.newPage();
 await page.goto(DEV_URL);
-
-async function toBrowserFile(name, b64) {
-  return page.evaluateHandle(
-    ({ name, b64 }) => {
-      const binary = atob(b64);
-      const arr = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
-      return new File([arr], name);
-    },
-    { name, b64 },
-  );
-}
 
 const entries = await readdir(EXAMPLES);
 const allDrafts = [];
@@ -127,12 +170,75 @@ for (const entry of entries) {
 
 const transactions = allDrafts.map(({ confidence: _confidence, ...t }) => ({ ...t, id: crypto.randomUUID() }));
 
+// Mismo comportamiento que store.addCreditCardStatement: cada consumo de la
+// tarjeta se promueve a movimiento propio y categorizado, y el pago en bloque
+// que coincide en monto queda vinculado (para excluirlo del gasto después).
 creditCardStatements = creditCardStatements.map((s) => {
   const match = transactions.find(
     (t) => t.category === "pago_tarjeta_credito" && s.paymentAmount !== undefined && Math.abs(t.amount - s.paymentAmount) < 0.01,
   );
   return { ...s, linkedTransactionId: match?.id };
 });
+
+const promoted = await page.evaluate(async (statements) => {
+  const { categorize } = await import("/src/lib/categorize.ts");
+  return statements.flatMap((s) =>
+    s.items.map((item) => ({
+      id: crypto.randomUUID(),
+      date: item.date,
+      description: item.description,
+      amount: item.amount,
+      currency: item.currency,
+      ...categorize(item.description, "manual"),
+      bank: "tarjeta_credito",
+      installment: item.installment,
+      reference: item.reference,
+      sourceFile: s.sourceFile,
+      creditCardStatementId: s.id,
+    })),
+  );
+}, creditCardStatements);
+transactions.push(...promoted);
+
+// Si dejaste un movimientos.csv (export de "Exportar CSV" con tus categorías
+// ya corregidas a mano), se usa para pisar la categoría de cada movimiento
+// que matchee por fecha + descripción + monto. El CSV no tiene subcategoría,
+// así que al cambiar de categoría se limpia la que haya quedado.
+const csvPath = path.join(EXAMPLES, "movimientos.csv");
+if (await exists(csvPath)) {
+  const csvText = await readFile(csvPath, "utf8");
+  const rows = parseCsv(csvText).filter((r) => r.length >= 4 && r[0] !== "Fecha");
+
+  const labelToKey = await page.evaluate(async () => {
+    const { CATEGORY_META } = await import("/src/types.ts");
+    return Object.fromEntries(Object.entries(CATEGORY_META).map(([key, meta]) => [meta.label, key]));
+  });
+
+  const used = new Set();
+  let matched = 0;
+  let unmatched = 0;
+  for (const [date, description, categoriaLabel, montoRaw] of rows) {
+    const amount = Number(montoRaw);
+    const categoryKey = labelToKey[categoriaLabel];
+    if (!categoryKey || Number.isNaN(amount)) {
+      unmatched++;
+      continue;
+    }
+    const idx = transactions.findIndex(
+      (t, i) => !used.has(i) && t.date === date && t.description === description && Math.abs(t.amount - amount) < 0.01,
+    );
+    if (idx === -1) {
+      unmatched++;
+      continue;
+    }
+    used.add(idx);
+    matched++;
+    if (transactions[idx].category !== categoryKey) {
+      transactions[idx] = { ...transactions[idx], category: categoryKey, subcategory: undefined };
+    }
+  }
+  console.log(`\nmovimientos.csv: ${matched} categoría(s) aplicada(s), ${unmatched} fila(s) sin match.`);
+}
 
 const backup = {
   version: 1,

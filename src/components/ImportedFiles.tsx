@@ -46,6 +46,14 @@ export function ImportedFiles() {
 
   async function handleRestoreFile(file: File) {
     setRestoreError(null);
+    if (
+      transactions.length > 0 &&
+      !window.confirm(
+        `Ya tenés ${transactions.length} movimientos cargados. Restaurar este backup los va a REEMPLAZAR por completo (no se suman). ¿Confirmás?`,
+      )
+    ) {
+      return;
+    }
     try {
       const parsed: unknown = JSON.parse(await file.text());
       if (!isBackupData(parsed)) {
@@ -132,9 +140,9 @@ export function ImportedFiles() {
                 {unlinkedStatements.map((s) => (
                   <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 text-xs">
                     <span style={{ color: "var(--text-secondary)" }}>
-                      {s.cardLabel} · {s.items.length} consumo(s)
-                      {s.paymentAmount !== undefined && ` · pago ${formatCurrency(s.paymentAmount)}`}
-                      {" — no encontramos un movimiento de \"pago de tarjeta\" que coincida en monto"}
+                      {s.cardLabel} · {s.items.length} consumo(s) ya cargados como movimientos propios
+                      {s.paymentAmount !== undefined && ` · pago del resumen ${formatCurrency(s.paymentAmount)}`}
+                      {" — no encontramos un \"pago de tarjeta\" que coincida en monto para excluirlo; revisá que no quede contado dos veces"}
                     </span>
                     <button
                       onClick={() => deleteCreditCardStatement(s.id)}

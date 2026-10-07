@@ -11,7 +11,7 @@ export type Category =
   | "transferencias"
   | "gustos_personales";
 
-export type Bank = "santander" | "nacion" | "manual" | "mercadopago";
+export type Bank = "santander" | "nacion" | "manual" | "mercadopago" | "tarjeta_credito";
 
 export type Currency = "ARS" | "USD";
 
@@ -57,6 +57,8 @@ export interface Transaction {
   /** Saldo que reporta el banco después de este movimiento, cuando el archivo lo trae */
   balanceAfter?: number;
   notes?: string;
+  /** Si este movimiento viene de un consumo de tarjeta promovido a movimiento propio, el id del resumen de origen */
+  creditCardStatementId?: string;
 }
 
 export interface CategoryMeta {

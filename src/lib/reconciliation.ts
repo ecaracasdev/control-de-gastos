@@ -1,4 +1,5 @@
 import type { Transaction } from "../types";
+import type { CreditCardStatement } from "./creditcard";
 
 const AMOUNT_EPSILON = 0.01;
 const MAX_DAY_DIFF = 3;
@@ -39,4 +40,14 @@ export function findReconciledInternalTransferIds(transactions: Transaction[]): 
   }
 
   return reconciled;
+}
+
+/**
+ * El pago en bloque del banco ("Pago de tarjeta de crédito") que ya tiene un
+ * resumen de tarjeta vinculado queda reemplazado por los consumos reales
+ * (cada uno es ahora su propio movimiento, con su propia categoría): contar
+ * también el pago en bloque sería gastar esa plata dos veces.
+ */
+export function findSupersededCardPaymentIds(statements: CreditCardStatement[]): Set<string> {
+  return new Set(statements.map((s) => s.linkedTransactionId).filter((id): id is string => Boolean(id)));
 }
