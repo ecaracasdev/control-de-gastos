@@ -79,9 +79,19 @@ export function TransactionList() {
 
   if (transactions.length === 0) {
     return (
-      <Card>
-        <EmptyState icon={<Wallet size={22} />} title="Todavía no hay movimientos cargados" />
-      </Card>
+      <div className="space-y-4">
+        <h1 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
+          Movimientos
+        </h1>
+        <ImportedFiles />
+        <Card>
+          <EmptyState
+            icon={<Wallet size={22} />}
+            title="Todavía no hay movimientos cargados"
+            description={`Subí un resumen desde "Cargar documento", o restaurá un backup desde "Archivos importados" arriba.`}
+          />
+        </Card>
+      </div>
     );
   }
 
